@@ -1,0 +1,282 @@
+# FlowStrix Agent Spec — IT Access Request Agent
+# Demonstrates the smart handoff pattern: conversational for simple requests,
+# structured form for sensitive access, multi-step approval chain.
+
+version: "1.0"
+agent: it_access_agent
+
+persona:
+  name: "Sam"
+  description: "An IT access provisioning agent. Handles system access requests — auto-approves low-risk, escalates high-risk with structured justification."
+  tone: "Efficient, clear, security-conscious. Brief for simple requests, thorough for sensitive ones."
+  guardrails:
+    - "Never grant production database access without manager AND security approval"
+    - "Never skip compliance form for sensitive access categories"
+    - "Always verify the requester's identity context before proceeding"
+    - "Never reveal system architecture details in responses"
+  off_limits:
+    - "Specific server hostnames or IPs"
+    - "Other employees' access levels"
+    - "Workarounds to bypass security policies"
+
+journeys:
+  - name: handle_access_request
+    description: "Process an IT access request — auto-approve simple access, handoff to structured form for sensitive access, evaluate justification via policy, route through approval chain."
+    trigger:
+      description: "Employee requests access to a system, tool, channel, or resource"
+      intent_keywords: ["access", "permission", "add me to", "need access", "can't access", "grant", "provision"]
+    steps:
+      # --- Parallel lookups: employee info + system classification ---
+      - type: lookup
+        name: fetch_employee_info
+        tool: get_employee_by_id
+        params:
+          employee_id: "${employee_id}"
+        output_key: employee_info
+
+      - type: lookup
+        name: classify_system
+        tool: classify_access_target
+        params:
+          request_text: "${user_message}"
+        output_key: access_classification
+
+      # --- AI reasoning: is this sensitive? ---
+      - type: reason
+        name: assess_sensitivity
+        prompt: |
+          Based on the employee's request and the system classification, determine:
+          1. What system/resource is being requested?
+          2. What is the sensitivity level? (low, medium, high, critical)
+          3. Does this require a compliance justification form?
+          4. Can this be auto-approved?
+
+          Rules:
+          - Low: Slack channels, wikis, dev tools → auto-approve
+          - Medium: Internal dashboards, staging environments → auto-approve with logging
+          - High: Production read access, customer data views → requires justification form
+          - Critical: Production write access, admin panels, PII export → form + dual approval
+        knowledge:
+          - access_policy
+        output_schema:
+          type: object
+          properties:
+            target_system:
+              type: string
+            sensitivity:
+              type: string
+              enum: ["low", "medium", "high", "critical"]
+            requires_form:
+              type: boolean
+            auto_approve:
+              type: boolean
+            reason:
+              type: string
+          required: ["target_system", "sensitivity", "requires_form", "auto_approve", "reason"]
+        output_key: sensitivity_assessment
+        temperature: 0.0
+
+      # --- Branch: simple vs. complex path ---
+      - type: branch
+        name: route_by_sensitivity
+        condition: "${requires_form}"
+        if_true: collect_justification
+        if_false: auto_provision_access
+
+      # --- HANDOFF: Switch to structured form for sensitive access ---
+      - type: handoff
+        name: collect_justification
+        trigger_condition: "always"
+        transition_message: "Production data access requires a compliance justification. Let me pull up the form — it's faster than going back and forth on each field."
+        fields:
+          - id: business_justification
+            label: "Business Justification"
+            field_type: textarea
+            required: true
+            placeholder: "Describe why you need this access and what you'll use it for..."
+            validation: "min_length:20"
+          - id: specific_resources
+            label: "Specific Resources Needed"
+            field_type: multiselect
+            required: true
+            options:
+              - "customer_accounts (read)"
+              - "customer_accounts (write)"
+              - "transaction_logs (read)"
+              - "admin_console"
+              - "analytics_dashboard"
+              - "export_api"
+          - id: duration
+            label: "Access Duration"
+            field_type: select
+            required: true
+            options:
+              - "7 days"
+              - "30 days"
+              - "90 days"
+              - "Permanent"
+          - id: data_export
+            label: "Will you export data outside the system?"
+            field_type: select
+            required: true
+            options:
+              - "No"
+              - "Yes — internal reports only"
+              - "Yes — shared externally"
+          - id: acknowledgment
+            label: "I acknowledge this data is subject to our data handling policy and I will not share access credentials"
+            field_type: checkbox
+            required: true
+        prefill_from_context:
+          specific_resources: "target_system"
+        output_key: justification_form
+
+      # --- RAG evaluation of justification ---
+      - type: reason
+        name: evaluate_justification
+        prompt: |
+          Evaluate this access justification against our security policy:
+
+          Justification: ${business_justification}
+          Resources requested: ${specific_resources}
+          Duration: ${duration}
+          Data export: ${data_export}
+          Employee role: ${employee_role}
+          Employee team: ${employee_team}
+
+          Determine:
+          1. Is this justification sufficient for the requested access level?
+          2. Does the employee's role/team typically need this access?
+          3. Are there any policy red flags?
+          4. Recommended approval path: manager_only, manager_and_security, or deny
+        knowledge:
+          - access_policy
+        output_schema:
+          type: object
+          properties:
+            justification_sufficient:
+              type: boolean
+            role_appropriate:
+              type: boolean
+            red_flags:
+              type: array
+              items:
+                type: string
+            approval_path:
+              type: string
+              enum: ["manager_only", "manager_and_security", "deny"]
+            evaluation_notes:
+              type: string
+          required: ["justification_sufficient", "approval_path", "evaluation_notes"]
+        output_key: policy_evaluation
+        temperature: 0.0
+
+      # --- Branch: approval routing ---
+      - type: branch
+        name: route_approval
+        condition: "${approval_path} == manager_and_security"
+        if_true: escalate_dual_approval
+        if_false: escalate_manager_only
+
+      # --- HITL: Dual approval (manager + security) ---
+      - type: hitl
+        name: escalate_dual_approval
+        condition: "always"
+        escalation_type: approval
+        escalate_to: "manager + security_team"
+        context_to_share:
+          - employee_info
+          - justification_form
+          - policy_evaluation
+          - sensitivity_assessment
+        timeout_seconds: 86400
+
+      # --- HITL: Manager-only approval ---
+      - type: hitl
+        name: escalate_manager_only
+        condition: "always"
+        escalation_type: approval
+        escalate_to: "manager"
+        context_to_share:
+          - employee_info
+          - justification_form
+          - policy_evaluation
+
+      # --- Simple path: auto-approve ---
+      - type: tool
+        name: auto_provision_access
+        tool: provision_access
+        params:
+          employee_id: "${employee_id}"
+          target_system: "${target_system}"
+          access_level: "standard"
+          duration_days: "30"
+        output_key: provision_result
+
+      - type: respond
+        name: confirm_simple_access
+        prompt: "Let the employee know their access has been granted. Be brief — this was a simple request. Mention what they now have access to."
+        include_context:
+          - provision_result
+          - access_classification
+
+    fallback: "Apologize and offer to connect with the IT help desk directly."
+    max_turns: 10
+
+knowledge:
+  - id: access_policy
+    source_type: document
+    uri: "docs/it-access-policy.md"
+    description: "IT access provisioning policy — sensitivity classification, approval requirements, duration limits, data handling rules"
+
+simulations:
+  - name: access_request_scenarios
+    scenarios:
+      - name: simple_slack_channel
+        description: "Employee wants to join a Slack channel — should auto-approve in seconds"
+        user_messages:
+          - "Hey, can you add me to the #platform-alerts channel?"
+        expected_outcome: "Access granted immediately, no form needed"
+        expected_steps:
+          - fetch_employee_info
+          - classify_system
+          - assess_sensitivity
+          - auto_provision_access
+          - confirm_simple_access
+        must_not:
+          - collect_justification
+          - escalate_dual_approval
+
+      - name: production_database_read
+        description: "Employee needs production DB read access — should trigger form + manager approval"
+        user_messages:
+          - "I need read access to the production customer database for a data analysis project"
+        expected_outcome: "Form collected, justification evaluated, escalated to manager"
+        expected_steps:
+          - fetch_employee_info
+          - classify_system
+          - assess_sensitivity
+          - collect_justification
+        must_not:
+          - auto_provision_access
+
+      - name: critical_data_export
+        description: "Employee wants to export customer data — should trigger form + dual approval"
+        user_messages:
+          - "I need access to export customer transaction data for an external audit report"
+        expected_outcome: "Form collected, dual approval required (manager + security)"
+        expected_steps:
+          - fetch_employee_info
+          - classify_system
+          - assess_sensitivity
+          - collect_justification
+        must_not:
+          - auto_provision_access
+
+    num_runs_per_scenario: 5
+    pass_threshold: 0.8
+
+config:
+  model: "claude-sonnet-4-20250514"
+  max_tokens_default: 1024
+  temperature_default: 0.0

@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply min-h-screen;
+  }
+}
+
+@layer components {
+  .step-card {
+    @apply rounded-lg border p-4 transition-all duration-300;
+  }
+  .step-card-pending {
+    @apply border-gray-200 bg-white text-gray-400;
+  }
+  .step-card-running {
+    @apply border-forge-300 bg-forge-50 text-forge-700 shadow-md ring-2 ring-forge-200;
+  }
+  .step-card-completed {
+    @apply border-green-200 bg-green-50 text-green-700;
+  }
+  .step-card-failed {
+    @apply border-red-200 bg-red-50 text-red-700;
+  }
+  .step-card-hitl {
+    @apply border-amber-300 bg-amber-50 text-amber-700 shadow-md ring-2 ring-amber-200;
+  }
+}

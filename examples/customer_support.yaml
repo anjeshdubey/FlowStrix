@@ -1,0 +1,231 @@
+# FlowStrix Agent Spec — Customer Support Agent
+# This is the agent-native equivalent of a traditional Flow that handles
+# customer support interactions with intelligent routing and HITL gates.
+
+version: "1.0"
+agent: customer_support
+
+persona:
+  name: "Alex"
+  description: "A customer support agent for an e-commerce platform. Handles refunds, order inquiries, and account issues."
+  tone: "Friendly, concise, empathetic. Use the customer's name when known."
+  guardrails:
+    - "Never promise refunds before verifying eligibility"
+    - "Always confirm destructive actions (refunds, cancellations) before executing"
+    - "Escalate to human if customer expresses frustration more than twice"
+    - "Never share internal system IDs with customers"
+  off_limits:
+    - "Competitor comparisons or pricing"
+    - "Internal company policies not in the knowledge base"
+    - "Legal advice or liability admissions"
+
+journeys:
+  - name: handle_refund_request
+    description: "Process a customer refund request — verify eligibility, handle approval gates, and execute or escalate."
+    trigger:
+      description: "Customer asks for a refund, money back, or return"
+      intent_keywords: ["refund", "money back", "return", "cancel order", "want my money"]
+    steps:
+      - type: lookup
+        name: fetch_order_history
+        tool: get_orders_by_customer_id
+        params:
+          customer_id: "${customer_id}"
+        output_key: order_history
+
+      - type: reason
+        name: determine_eligibility
+        prompt: |
+          Based on the customer's order history and our refund policy, determine:
+          1. Which order is the customer likely asking about? (most recent, or mentioned)
+          2. Is this order eligible for a refund? (within 30-day window, not already refunded)
+          3. What is the refund amount?
+
+          Return your assessment as structured data.
+        knowledge:
+          - refund_policy
+        output_schema:
+          type: object
+          properties:
+            eligible:
+              type: boolean
+            order_id:
+              type: string
+            refund_amount:
+              type: number
+            reason:
+              type: string
+          required: ["eligible", "order_id", "refund_amount", "reason"]
+        output_key: eligibility
+        temperature: 0.0
+
+      - type: branch
+        name: check_eligibility
+        condition: "${eligible}"
+        if_true: check_amount_gate
+        if_false: explain_ineligibility
+
+      - type: branch
+        name: check_amount_gate
+        condition: "${refund_amount} > 500"
+        if_true: escalate_high_value
+        if_false: process_refund_action
+
+      - type: hitl
+        name: escalate_high_value
+        condition: "always"
+        escalation_type: approval
+        escalate_to: senior_support_agent
+        context_to_share:
+          - order_history
+          - eligibility
+        timeout_seconds: 300
+        timeout_action: notify_customer_delay
+
+      - type: tool
+        name: process_refund_action
+        tool: process_refund
+        params:
+          order_id: "${order_id}"
+          amount: "${refund_amount}"
+        output_key: refund_result
+        requires_confirmation: true
+
+      - type: respond
+        name: confirm_refund
+        prompt: "Let the customer know their refund has been processed successfully. Include the refund amount and expected timeline (3-5 business days)."
+        include_context:
+          - refund_result
+          - eligibility
+
+      - type: respond
+        name: explain_ineligibility
+        prompt: "Kindly explain to the customer why their order is not eligible for a refund. Be empathetic but clear. Offer alternatives if possible (store credit, exchange)."
+        include_context:
+          - eligibility
+          - order_history
+        tone: "empathetic but firm"
+
+      - type: respond
+        name: notify_customer_delay
+        prompt: "Let the customer know their refund request is being reviewed by a specialist and they'll hear back within 24 hours."
+        tone: "reassuring"
+
+    fallback: "Apologize for the issue and offer to connect with a human agent."
+    max_turns: 15
+
+  - name: order_status_inquiry
+    description: "Help customer check the status of their order."
+    trigger:
+      description: "Customer asks about order status, tracking, or delivery"
+      intent_keywords: ["where is my order", "order status", "tracking", "delivery", "when will it arrive"]
+    steps:
+      - type: lookup
+        name: fetch_orders
+        tool: get_orders_by_customer_id
+        params:
+          customer_id: "${customer_id}"
+        output_key: order_history
+
+      - type: reason
+        name: identify_order
+        prompt: "Based on the conversation and order history, identify which order the customer is asking about. If unclear, determine what clarifying question to ask."
+        output_schema:
+          type: object
+          properties:
+            order_identified:
+              type: boolean
+            order_id:
+              type: string
+            status:
+              type: string
+            needs_clarification:
+              type: boolean
+            clarification_question:
+              type: string
+        output_key: order_status
+        temperature: 0.0
+
+      - type: branch
+        name: check_if_identified
+        condition: "${order_identified}"
+        if_true: provide_status
+        if_false: ask_clarification
+
+      - type: respond
+        name: provide_status
+        prompt: "Share the order status with the customer in a helpful way. If delivered, ask if everything arrived okay. If in transit, share estimated delivery."
+        include_context:
+          - order_status
+          - order_history
+
+      - type: respond
+        name: ask_clarification
+        prompt: "Politely ask the customer which order they're asking about, listing their recent orders."
+        include_context:
+          - order_history
+
+    max_turns: 10
+
+knowledge:
+  - id: refund_policy
+    source_type: document
+    uri: "docs/refund-policy.md"
+    description: "Company refund policy — eligibility criteria, timeframes, exceptions"
+
+  - id: shipping_info
+    source_type: document
+    uri: "docs/shipping-faq.md"
+    description: "Shipping timeframes, carriers, tracking info"
+
+  - id: product_catalog
+    source_type: api
+    uri: "https://api.example.com/products"
+    description: "Product details, pricing, availability"
+    refresh_interval_seconds: 3600
+
+simulations:
+  - name: refund_scenarios
+    scenarios:
+      - name: eligible_small_refund
+        description: "Customer bought 3 days ago, item arrived damaged, wants refund for $89.50 order"
+        user_messages:
+          - "Hi, I received my order yesterday but the item is damaged. I'd like a refund."
+        expected_outcome: "Refund processed successfully"
+        expected_steps:
+          - fetch_order_history
+          - determine_eligibility
+          - process_refund_action
+          - confirm_refund
+        must_not:
+          - escalate_high_value
+
+      - name: ineligible_too_old
+        description: "Customer bought 45 days ago, wants refund — outside 30-day window"
+        user_messages:
+          - "I want to return something I bought about 6 weeks ago."
+        expected_outcome: "Refund denied with explanation and alternatives offered"
+        expected_steps:
+          - fetch_order_history
+          - determine_eligibility
+          - explain_ineligibility
+        must_not:
+          - process_refund_action
+
+      - name: high_value_escalation
+        description: "Customer wants refund on $750 order — should trigger HITL"
+        user_messages:
+          - "I need a refund for my recent purchase, it was the large furniture set."
+        expected_outcome: "Escalated to senior support for approval"
+        expected_steps:
+          - fetch_order_history
+          - determine_eligibility
+          - escalate_high_value
+
+    num_runs_per_scenario: 5
+    pass_threshold: 0.8
+
+config:
+  model: "claude-sonnet-4-20250514"
+  max_tokens_default: 1024
+  temperature_default: 0.0
