@@ -10,12 +10,12 @@ Tests cover:
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 import yaml
 
-from flowstrix.engine.nodes import NodeFactory, _resolve_expression
+from flowstrix.engine.nodes import NodeFactory
 from flowstrix.engine.state import ExecutionState
 from flowstrix.schema.models import (
     AgentSpec,
@@ -24,7 +24,6 @@ from flowstrix.schema.models import (
     StepType,
 )
 from flowstrix.schema.parser import parse_yaml
-
 
 # --- Schema Tests ---
 
@@ -79,8 +78,17 @@ class TestHandoffSchema:
             name="collect_justification",
             trigger_condition="${requires_form}",
             fields=[
-                HandoffField(id="justification", label="Business Justification", field_type="textarea"),
-                HandoffField(id="duration", label="Duration", field_type="select", options=["7d", "30d"]),
+                HandoffField(
+                    id="justification",
+                    label="Business Justification",
+                    field_type="textarea",
+                ),
+                HandoffField(
+                    id="duration",
+                    label="Duration",
+                    field_type="select",
+                    options=["7d", "30d"],
+                ),
                 HandoffField(id="ack", label="I acknowledge...", field_type="checkbox"),
             ],
             prefill_from_context={"justification": "initial_reason"},
@@ -149,7 +157,6 @@ journeys:
 
     def test_parse_it_access_request_spec(self, tmp_path):
         """Parse the full it_access_request.yaml example spec."""
-        import shutil
         from pathlib import Path
 
         spec_path = Path(__file__).parent.parent / "examples" / "it_access_request.yaml"
@@ -190,12 +197,14 @@ class TestHandoffNode:
         spec.persona.tone = "professional"
         spec.persona.guardrails = []
         spec.persona.off_limits = []
-        client = MagicMock()
+        gateway = MagicMock()
         tools = MagicMock()
         knowledge = MagicMock()
-        return NodeFactory(spec, client, "test-model", tools, knowledge)
+        return NodeFactory(spec, gateway, tools, knowledge)
 
-    def _make_state(self, data: dict = None, interaction_mode: str = "agent_driven") -> ExecutionState:
+    def _make_state(
+        self, data: dict = None, interaction_mode: str = "agent_driven"
+    ) -> ExecutionState:
         """Create a minimal execution state."""
         return ExecutionState(
             journey_name="test",
@@ -222,7 +231,12 @@ class TestHandoffNode:
             trigger_condition="${sensitive}",
             fields=[
                 HandoffField(id="reason", label="Reason", field_type="textarea"),
-                HandoffField(id="duration", label="Duration", field_type="select", options=["7d", "30d"]),
+                HandoffField(
+                    id="duration",
+                    label="Duration",
+                    field_type="select",
+                    options=["7d", "30d"],
+                ),
             ],
             output_key="form_data",
             transition_message="Let me get the details.",
@@ -292,7 +306,9 @@ class TestHandoffNode:
         )
 
         node_fn = factory.make_handoff_node(step)
-        state = self._make_state(data={"sensitive": False}, interaction_mode="structured")
+        state = self._make_state(
+            data={"sensitive": False}, interaction_mode="structured"
+        )
         result = node_fn(state)
 
         # Even though condition is False, structured mode forces handoff
@@ -327,12 +343,17 @@ class TestHandoffNode:
                 HandoffField(id="system", label="System"),
                 HandoffField(id="reason", label="Reason"),
             ],
-            prefill_from_context={"system": "target_system", "reason": "initial_reason"},
+            prefill_from_context={
+                "system": "target_system",
+                "reason": "initial_reason",
+            },
             output_key="form_data",
         )
 
         node_fn = factory.make_handoff_node(step)
-        state = self._make_state(data={"target_system": "prod_db", "initial_reason": "data analysis"})
+        state = self._make_state(
+            data={"target_system": "prod_db", "initial_reason": "data analysis"}
+        )
         result = node_fn(state)
 
         fields = result["handoff_form"]["fields"]
@@ -386,7 +407,9 @@ class TestHandoffGraphWiring:
         )
 
         factory = MagicMock()
-        factory.make_handoff_node.return_value = lambda state: {"status": "waiting_handoff"}
+        factory.make_handoff_node.return_value = lambda state: {
+            "status": "waiting_handoff"
+        }
 
         # Should compile without raising
         graph = compile_journey_graph(journey, factory, interrupt_on_hitl=True)
@@ -402,7 +425,9 @@ class TestHandoffGraphWiring:
             description="Test",
             trigger=Trigger(description="test"),
             steps=[
-                LookupStep(name="fetch", tool="test_tool", params={}, output_key="data"),
+                LookupStep(
+                    name="fetch", tool="test_tool", params={}, output_key="data"
+                ),
                 HandoffStep(
                     name="collect_form",
                     trigger_condition="always",
@@ -413,8 +438,14 @@ class TestHandoffGraphWiring:
         )
 
         factory = MagicMock()
-        factory.make_lookup_node.return_value = lambda state: {"data": {}, "traces": [], "steps_executed": []}
-        factory.make_handoff_node.return_value = lambda state: {"status": "waiting_handoff"}
+        factory.make_lookup_node.return_value = lambda state: {
+            "data": {},
+            "traces": [],
+            "steps_executed": [],
+        }
+        factory.make_handoff_node.return_value = lambda state: {
+            "status": "waiting_handoff"
+        }
 
         # The graph compiler should include handoff in interrupt_before
         # (verified by the fact compilation succeeds with interrupt_on_hitl=True)

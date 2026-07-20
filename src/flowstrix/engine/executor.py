@@ -16,13 +16,12 @@ Architecture notes:
 from __future__ import annotations
 
 import json
+from dataclasses import replace as dataclasses_replace
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from openai import OpenAI
-
 from flowstrix.engine.context import ExecutionContext, StepStatus
-from flowstrix.gateway import GatewayConfig, create_client, resolve_model
+from flowstrix.gateway import ChatGateway, GatewayConfig, resolve_chain, resolve_model
 from flowstrix.knowledge.loader import KnowledgeLoader
 from flowstrix.schema.models import (
     AgentSpec,
@@ -89,9 +88,14 @@ class JourneyExecutor:
         # Use gateway config (auto-loads from env if not provided)
         if gateway_config is None:
             gateway_config = GatewayConfig.from_env()
+        if model:
+            gateway_config = dataclasses_replace(
+                gateway_config, model=resolve_model(model)
+            )
 
-        self.client = create_client(gateway_config)
-        self.model = resolve_model(model or gateway_config.model)
+        # ChatGateway adds automatic provider fallback + Upstash response
+        # caching on top of the resolved primary config.
+        self.gateway = ChatGateway(resolve_chain(gateway_config))
 
         # Knowledge loader for injecting documents into reason steps
         self.knowledge = KnowledgeLoader(spec, base_path=knowledge_base_path)
@@ -273,18 +277,16 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
 {json.dumps(step.output_schema, indent=2)}
 """
 
-        # Call LLM (OpenAI-compatible — works with Groq)
-        response = self.client.chat.completions.create(
-            model=self.model,
-            max_tokens=step.max_tokens,
-            temperature=step.temperature,
+        # Cached + fallback-aware LLM call (Upstash exact-match cache, then
+        # provider chain with automatic failover).
+        result_text = self.gateway.complete(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
+            temperature=step.temperature,
+            max_tokens=step.max_tokens,
         )
-
-        result_text = response.choices[0].message.content or ""
 
         # Try to parse as JSON if output_schema is defined
         if step.output_schema:
@@ -328,17 +330,14 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
         if step.tone:
             user_prompt += f"\n## Tone\n{step.tone}\n"
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            max_tokens=512,
-            temperature=0.3,
+        result = self.gateway.complete(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
+            temperature=0.3,
+            max_tokens=512,
         )
-
-        result = response.choices[0].message.content or ""
         ctx.add_message("assistant", result)
         return result
 
@@ -441,7 +440,9 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
         """Format conversation messages for LLM context."""
         return "\n".join(f"{m['role']}: {m['content']}" for m in messages)
 
-    def _resolve_params(self, params: dict[str, Any], ctx: ExecutionContext) -> dict[str, Any]:
+    def _resolve_params(
+        self, params: dict[str, Any], ctx: ExecutionContext
+    ) -> dict[str, Any]:
         """Resolve ${} references in tool parameters."""
         resolved = {}
         for k, v in params.items():

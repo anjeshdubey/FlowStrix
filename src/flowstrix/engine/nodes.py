@@ -3,7 +3,8 @@ LangGraph Node Functions — One function per step type.
 
 Each node takes ExecutionState, performs its operation, and returns
 a partial state update. Deterministic nodes never touch the LLM.
-Probabilistic nodes (reason, respond) go through the Anthropic client.
+Probabilistic nodes (reason, respond) go through the ChatGateway
+(provider fallback + Upstash response caching).
 
 Architecture:
 - Nodes are pure functions (state in → partial state out)
@@ -18,9 +19,8 @@ import re
 import time
 from typing import Any, Callable
 
-from openai import OpenAI
-
 from flowstrix.engine.state import ExecutionState, StepTraceEntry
+from flowstrix.gateway import ChatGateway
 from flowstrix.schema.models import (
     AgentSpec,
     BranchStep,
@@ -34,7 +34,13 @@ from flowstrix.schema.models import (
 )
 
 
-def _make_trace(step_name: str, step_type: str, output: Any = None, error: str | None = None, duration_ms: float | None = None) -> StepTraceEntry:
+def _make_trace(
+    step_name: str,
+    step_type: str,
+    output: Any = None,
+    error: str | None = None,
+    duration_ms: float | None = None,
+) -> StepTraceEntry:
     """Create a trace entry."""
     return StepTraceEntry(
         step_name=step_name,
@@ -96,9 +102,11 @@ def _resolve_params(params: dict[str, Any], data: dict[str, Any]) -> dict[str, A
     resolved = {}
     for k, v in params.items():
         if isinstance(v, str) and "${" in v:
+
             def replace_ref(m: re.Match) -> str:
                 key = m.group(1)
                 return str(data.get(key, ""))
+
             resolved[k] = re.sub(r"\$\{(\w+)\}", replace_ref, v)
         else:
             resolved[k] = v
@@ -140,14 +148,12 @@ class NodeFactory:
     def __init__(
         self,
         spec: AgentSpec,
-        client: Anthropic,
-        model: str,
+        gateway: ChatGateway,
         tools: Any,  # ToolRegistry
         knowledge: Any,  # KnowledgeLoader
     ):
         self.spec = spec
-        self.client = client
-        self.model = model
+        self.gateway = gateway
         self.tools = tools
         self.knowledge = knowledge
 
@@ -169,7 +175,11 @@ class NodeFactory:
         return "\n".join(parts)
 
     def _build_context_block(
-        self, data: dict[str, Any], messages: list[dict[str, str]], knowledge_ids: list[str], query: str = ""
+        self,
+        data: dict[str, Any],
+        messages: list[dict[str, str]],
+        knowledge_ids: list[str],
+        query: str = "",
     ) -> str:
         """Build context block from state data + knowledge sources."""
         parts = []
@@ -181,12 +191,16 @@ class NodeFactory:
 
         if messages:
             parts.append("### Conversation History")
-            parts.append("\n".join(f"{m['role']}: {m['content']}" for m in messages[-5:]))
+            parts.append(
+                "\n".join(f"{m['role']}: {m['content']}" for m in messages[-5:])
+            )
 
         if knowledge_ids:
             parts.append("### Relevant Knowledge")
             if query and any(self.knowledge.is_ingested(kid) for kid in knowledge_ids):
-                knowledge_content = self.knowledge.retrieve(query=query, knowledge_ids=knowledge_ids, top_k=3)
+                knowledge_content = self.knowledge.retrieve(
+                    query=query, knowledge_ids=knowledge_ids, top_k=3
+                )
             else:
                 knowledge_content = self.knowledge.load_multiple(knowledge_ids)
             parts.append(knowledge_content)
@@ -195,6 +209,7 @@ class NodeFactory:
 
     def make_lookup_node(self, step: LookupStep) -> Callable[[ExecutionState], dict]:
         """Create a node function for a lookup step."""
+
         def node(state: ExecutionState) -> dict:
             start = time.time()
             try:
@@ -202,7 +217,9 @@ class NodeFactory:
                 result = self.tools.invoke(step.tool, resolved_params)
                 data = {**state["data"], step.output_key: result}
                 duration = (time.time() - start) * 1000
-                trace = _make_trace(step.name, "lookup", output=result, duration_ms=duration)
+                trace = _make_trace(
+                    step.name, "lookup", output=result, duration_ms=duration
+                )
                 return {
                     "data": data,
                     "traces": state["traces"] + [trace],
@@ -210,7 +227,9 @@ class NodeFactory:
                 }
             except Exception as e:
                 duration = (time.time() - start) * 1000
-                trace = _make_trace(step.name, "lookup", error=str(e), duration_ms=duration)
+                trace = _make_trace(
+                    step.name, "lookup", error=str(e), duration_ms=duration
+                )
                 update: dict[str, Any] = {
                     "traces": state["traces"] + [trace],
                     "steps_executed": state["steps_executed"] + [step.name],
@@ -223,6 +242,7 @@ class NodeFactory:
 
     def make_reason_node(self, step: ReasonStep) -> Callable[[ExecutionState], dict]:
         """Create a node function for a reason step."""
+
         def node(state: ExecutionState) -> dict:
             start = time.time()
             system_prompt = self._build_system_prompt()
@@ -249,17 +269,14 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
 {json.dumps(step.output_schema, indent=2)}
 """
 
-            response = self.client.chat.completions.create(
-                model=self.model,
-                max_tokens=step.max_tokens,
-                temperature=step.temperature,
+            result_text = self.gateway.complete(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
+                temperature=step.temperature,
+                max_tokens=step.max_tokens,
             )
-
-            result_text = response.choices[0].message.content or ""
             if step.output_schema:
                 result = _parse_json_response(result_text)
             else:
@@ -272,7 +289,9 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
                     data[k] = v
 
             duration = (time.time() - start) * 1000
-            trace = _make_trace(step.name, "reason", output=result, duration_ms=duration)
+            trace = _make_trace(
+                step.name, "reason", output=result, duration_ms=duration
+            )
             return {
                 "data": data,
                 "traces": state["traces"] + [trace],
@@ -283,6 +302,7 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
 
     def make_respond_node(self, step: RespondStep) -> Callable[[ExecutionState], dict]:
         """Create a node function for a respond step."""
+
         def node(state: ExecutionState) -> dict:
             start = time.time()
             system_prompt = self._build_system_prompt()
@@ -293,7 +313,9 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
                 if val:
                     context_parts.append(f"{key}: {val}")
 
-            msg_history = "\n".join(f"{m['role']}: {m['content']}" for m in state["messages"])
+            msg_history = "\n".join(
+                f"{m['role']}: {m['content']}" for m in state["messages"]
+            )
 
             user_prompt = f"""Generate a response to the user.
 
@@ -309,21 +331,20 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
             if step.tone:
                 user_prompt += f"\n## Tone\n{step.tone}\n"
 
-            response = self.client.chat.completions.create(
-                model=self.model,
-                max_tokens=512,
-                temperature=0.3,
+            result = self.gateway.complete(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
+                temperature=0.3,
+                max_tokens=512,
             )
-
-            result = response.choices[0].message.content or ""
             messages = state["messages"] + [{"role": "assistant", "content": result}]
 
             duration = (time.time() - start) * 1000
-            trace = _make_trace(step.name, "respond", output=result, duration_ms=duration)
+            trace = _make_trace(
+                step.name, "respond", output=result, duration_ms=duration
+            )
             return {
                 "messages": messages,
                 "traces": state["traces"] + [trace],
@@ -339,13 +360,19 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
         appropriate target. The actual routing is done by a conditional edge
         in the graph wiring (graph.py).
         """
+
         def node(state: ExecutionState) -> dict:
             start = time.time()
             condition_result = _resolve_expression(state["data"], step.condition)
             target = step.if_true if condition_result else step.if_false
 
             duration = (time.time() - start) * 1000
-            trace = _make_trace(step.name, "branch", output=f"branched to: {target}", duration_ms=duration)
+            trace = _make_trace(
+                step.name,
+                "branch",
+                output=f"branched to: {target}",
+                duration_ms=duration,
+            )
             return {
                 "next_step": target,
                 "traces": state["traces"] + [trace],
@@ -360,6 +387,7 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
         If the condition is met, sets waiting_for_human=True and status=waiting_hitl.
         The graph uses an interrupt_before on HITL nodes to pause execution.
         """
+
         def node(state: ExecutionState) -> dict:
             start = time.time()
             should_escalate = _resolve_expression(state["data"], step.condition)
@@ -372,7 +400,9 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
                     "step_name": step.name,
                 }
                 duration = (time.time() - start) * 1000
-                trace = _make_trace(step.name, "hitl", output="escalated to human", duration_ms=duration)
+                trace = _make_trace(
+                    step.name, "hitl", output="escalated to human", duration_ms=duration
+                )
                 return {
                     "waiting_for_human": True,
                     "hitl_request": hitl_request,
@@ -382,7 +412,12 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
                 }
             else:
                 duration = (time.time() - start) * 1000
-                trace = _make_trace(step.name, "hitl", output="condition not met, continuing", duration_ms=duration)
+                trace = _make_trace(
+                    step.name,
+                    "hitl",
+                    output="condition not met, continuing",
+                    duration_ms=duration,
+                )
                 return {
                     "traces": state["traces"] + [trace],
                     "steps_executed": state["steps_executed"] + [step.name],
@@ -392,6 +427,7 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
 
     def make_tool_node(self, step: ToolStep) -> Callable[[ExecutionState], dict]:
         """Create a node function for a tool step."""
+
         def node(state: ExecutionState) -> dict:
             start = time.time()
             try:
@@ -402,7 +438,9 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
                     data[step.output_key] = result
 
                 duration = (time.time() - start) * 1000
-                trace = _make_trace(step.name, "tool", output=result, duration_ms=duration)
+                trace = _make_trace(
+                    step.name, "tool", output=result, duration_ms=duration
+                )
                 return {
                     "data": data,
                     "traces": state["traces"] + [trace],
@@ -410,7 +448,9 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
                 }
             except Exception as e:
                 duration = (time.time() - start) * 1000
-                trace = _make_trace(step.name, "tool", error=str(e), duration_ms=duration)
+                trace = _make_trace(
+                    step.name, "tool", error=str(e), duration_ms=duration
+                )
                 update: dict[str, Any] = {
                     "traces": state["traces"] + [trace],
                     "steps_executed": state["steps_executed"] + [step.name],
@@ -429,6 +469,7 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
         before the graph continues. This node just records the trace and
         passes through — the actual pause happens at the graph level.
         """
+
         def node(state: ExecutionState) -> dict:
             start = time.time()
             # When this node actually runs (after resume), the new user_message
@@ -441,7 +482,9 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
                 ]
 
             duration = (time.time() - start) * 1000
-            trace = _make_trace(step.name, "wait", output="resumed", duration_ms=duration)
+            trace = _make_trace(
+                step.name, "wait", output="resumed", duration_ms=duration
+            )
             updates["traces"] = state["traces"] + [trace]
             updates["steps_executed"] = state["steps_executed"] + [step.name]
             return updates
@@ -455,6 +498,7 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
         If triggered, pauses execution and emits a form spec for the UI to render inline.
         Reuses the HITL interrupt mechanism — same pause/resume pattern.
         """
+
         def node(state: ExecutionState) -> dict:
             start = time.time()
 
@@ -466,7 +510,9 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
                 should_handoff = False
             else:
                 # agent_driven: use the step's trigger_condition
-                should_handoff = _resolve_expression(state["data"], step.trigger_condition)
+                should_handoff = _resolve_expression(
+                    state["data"], step.trigger_condition
+                )
 
             if should_handoff:
                 # Pre-fill fields from context
@@ -497,7 +543,9 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
                 }
 
                 duration = (time.time() - start) * 1000
-                trace = _make_trace(step.name, "handoff", output="form surfaced", duration_ms=duration)
+                trace = _make_trace(
+                    step.name, "handoff", output="form surfaced", duration_ms=duration
+                )
 
                 # Add transition message to conversation
                 messages = state["messages"] + [
@@ -516,7 +564,8 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
                 # Condition not met — skip handoff, continue conversationally
                 duration = (time.time() - start) * 1000
                 trace = _make_trace(
-                    step.name, "handoff",
+                    step.name,
+                    "handoff",
                     output="condition not met, staying conversational",
                     duration_ms=duration,
                 )

@@ -18,12 +18,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from flowstrix.engine.context import ExecutionContext, StepStatus
+from flowstrix.engine.context import StepStatus
 from flowstrix.engine.executor import ToolRegistry
 from flowstrix.engine.executor_v2 import LangGraphExecutor
 from flowstrix.gateway import GatewayConfig
 from flowstrix.schema.parser import parse_yaml
-
 
 EXAMPLES_DIR = Path(__file__).parent.parent / "examples"
 
@@ -73,25 +72,45 @@ def _register_test_tools(tools: ToolRegistry):
             return {
                 "customer_id": customer_id,
                 "orders": [
-                    {"order_id": "ORD-VIP", "amount": 1249.99, "days_since_purchase": 4, "status": "delivered"},
+                    {
+                        "order_id": "ORD-VIP",
+                        "amount": 1249.99,
+                        "days_since_purchase": 4,
+                        "status": "delivered",
+                    },
                 ],
             }
         if "old" in customer_id:
             return {
                 "customer_id": customer_id,
                 "orders": [
-                    {"order_id": "ORD-OLD", "amount": 179.99, "days_since_purchase": 60, "status": "delivered"},
+                    {
+                        "order_id": "ORD-OLD",
+                        "amount": 179.99,
+                        "days_since_purchase": 60,
+                        "status": "delivered",
+                    },
                 ],
             }
         return {
             "customer_id": customer_id,
             "orders": [
-                {"order_id": "ORD-001", "amount": 299.99, "days_since_purchase": 3, "status": "delivered"},
+                {
+                    "order_id": "ORD-001",
+                    "amount": 299.99,
+                    "days_since_purchase": 3,
+                    "status": "delivered",
+                },
             ],
         }
 
     def process_refund(order_id: str = "", amount: float = 0.0) -> dict:
-        return {"refund_id": "REF-100", "order_id": order_id, "amount": amount, "status": "processed"}
+        return {
+            "refund_id": "REF-100",
+            "order_id": order_id,
+            "amount": amount,
+            "status": "processed",
+        }
 
     tools.register("get_orders_by_customer_id", get_orders_by_customer_id)
     tools.register("process_refund", process_refund)
@@ -107,12 +126,14 @@ class TestLangGraphBasicExecution:
         """Eligible refund under $500 should: lookup → reason → branch → branch → tool → respond."""
         executor = make_executor()
 
-        eligible_response = json.dumps({
-            "eligible": True,
-            "order_id": "ORD-001",
-            "refund_amount": 299.99,
-            "reason": "Within 30-day window",
-        })
+        eligible_response = json.dumps(
+            {
+                "eligible": True,
+                "order_id": "ORD-001",
+                "refund_amount": 299.99,
+                "reason": "Within 30-day window",
+            }
+        )
         confirm_response = "Your refund has been processed!"
 
         with patch.object(executor.client, "messages") as mock_messages:
@@ -148,12 +169,14 @@ class TestLangGraphBasicExecution:
         """Ineligible refund should: lookup → reason → branch → respond (explain)."""
         executor = make_executor()
 
-        ineligible_response = json.dumps({
-            "eligible": False,
-            "order_id": "ORD-OLD",
-            "refund_amount": 0,
-            "reason": "Purchase older than 30 days",
-        })
+        ineligible_response = json.dumps(
+            {
+                "eligible": False,
+                "order_id": "ORD-OLD",
+                "refund_amount": 0,
+                "reason": "Purchase older than 30 days",
+            }
+        )
         explain_response = "Sorry, your order is outside our 30-day return window."
 
         with patch.object(executor.client, "messages") as mock_messages:
@@ -181,15 +204,19 @@ class TestLangGraphBasicExecution:
         """Refund over $500 should trigger HITL and pause execution."""
         executor = make_executor()
 
-        high_value_response = json.dumps({
-            "eligible": True,
-            "order_id": "ORD-VIP",
-            "refund_amount": 1249.99,
-            "reason": "Within window, eligible",
-        })
+        high_value_response = json.dumps(
+            {
+                "eligible": True,
+                "order_id": "ORD-VIP",
+                "refund_amount": 1249.99,
+                "reason": "Within window, eligible",
+            }
+        )
 
         with patch.object(executor.client, "messages") as mock_messages:
-            mock_messages.create.return_value = mock_anthropic_response(high_value_response)
+            mock_messages.create.return_value = mock_anthropic_response(
+                high_value_response
+            )
 
             result = executor.run(
                 "handle_refund_request",
@@ -215,7 +242,9 @@ class TestLangGraphStateConversion:
         """Context data should be populated from graph state."""
         executor = make_executor()
 
-        response = json.dumps({"eligible": True, "order_id": "X", "refund_amount": 50, "reason": "ok"})
+        response = json.dumps(
+            {"eligible": True, "order_id": "X", "refund_amount": 50, "reason": "ok"}
+        )
 
         with patch.object(executor.client, "messages") as mock_messages:
             mock_messages.create.side_effect = [
@@ -238,7 +267,9 @@ class TestLangGraphStateConversion:
         """Conversation messages should be in the result."""
         executor = make_executor()
 
-        response = json.dumps({"eligible": True, "order_id": "X", "refund_amount": 50, "reason": "ok"})
+        response = json.dumps(
+            {"eligible": True, "order_id": "X", "refund_amount": 50, "reason": "ok"}
+        )
 
         with patch.object(executor.client, "messages") as mock_messages:
             mock_messages.create.side_effect = [
@@ -265,7 +296,9 @@ class TestLangGraphStateConversion:
         """Execution traces should be populated for all steps."""
         executor = make_executor()
 
-        response = json.dumps({"eligible": True, "order_id": "X", "refund_amount": 50, "reason": "ok"})
+        response = json.dumps(
+            {"eligible": True, "order_id": "X", "refund_amount": 50, "reason": "ok"}
+        )
 
         with patch.object(executor.client, "messages") as mock_messages:
             mock_messages.create.side_effect = [
@@ -302,7 +335,7 @@ class TestLangGraphNodeFunctions:
 
     def test_branch_node_true_path(self):
         """Branch node should set next_step to if_true when condition is true."""
-        from flowstrix.engine.nodes import NodeFactory, _resolve_expression
+        from flowstrix.engine.nodes import _resolve_expression
         from flowstrix.schema.models import BranchStep
 
         step = BranchStep(
@@ -322,11 +355,13 @@ class TestLangGraphNodeFunctions:
     def test_resolve_expression_always(self):
         """'always' should resolve to True."""
         from flowstrix.engine.nodes import _resolve_expression
+
         assert _resolve_expression({}, "always") is True
 
     def test_resolve_expression_equality(self):
         """String equality should work."""
         from flowstrix.engine.nodes import _resolve_expression
+
         data = {"status": "active"}
         assert _resolve_expression(data, "${status} == active") is True
         assert _resolve_expression(data, "${status} == inactive") is False
@@ -334,17 +369,20 @@ class TestLangGraphNodeFunctions:
     def test_resolve_expression_missing_key(self):
         """Missing key should return False."""
         from flowstrix.engine.nodes import _resolve_expression
+
         assert _resolve_expression({}, "${nonexistent} > 500") is False
 
     def test_parse_json_clean(self):
         """Clean JSON should parse directly."""
         from flowstrix.engine.nodes import _parse_json_response
+
         result = _parse_json_response('{"eligible": true}')
         assert result == {"eligible": True}
 
     def test_parse_json_with_fences(self):
         """JSON wrapped in code fences should parse."""
         from flowstrix.engine.nodes import _parse_json_response
+
         text = '```json\n{"eligible": true, "amount": 100}\n```'
         result = _parse_json_response(text)
         assert result == {"eligible": True, "amount": 100}
@@ -352,6 +390,7 @@ class TestLangGraphNodeFunctions:
     def test_parse_json_embedded(self):
         """JSON embedded in text should be extracted."""
         from flowstrix.engine.nodes import _parse_json_response
+
         text = 'Analysis:\n{"eligible": false}\nEnd.'
         result = _parse_json_response(text)
         assert result == {"eligible": False}
@@ -378,8 +417,7 @@ class TestLangGraphGraphCompilation:
 
         factory = NodeFactory(
             spec=spec,
-            client=mock_client,
-            model="test-model",
+            gateway=mock_client,
             tools=tools,
             knowledge=knowledge,
         )
@@ -410,8 +448,7 @@ class TestLangGraphGraphCompilation:
 
         factory = NodeFactory(
             spec=spec,
-            client=mock_client,
-            model="test-model",
+            gateway=mock_client,
             tools=tools,
             knowledge=knowledge,
         )

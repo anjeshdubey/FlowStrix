@@ -12,7 +12,6 @@ from __future__ import annotations
 from typing import Any, Dict, List
 from unittest.mock import MagicMock
 
-import pytest
 
 from flowstrix.engine.graph import (
     _detect_parallel_groups,
@@ -32,16 +31,19 @@ from flowstrix.schema.models import (
     Trigger,
 )
 
-
 # --- Helpers ---
 
 
-def _make_lookup(name: str, tool: str, params: Dict[str, Any], output_key: str) -> LookupStep:
+def _make_lookup(
+    name: str, tool: str, params: Dict[str, Any], output_key: str
+) -> LookupStep:
     """Create a LookupStep for testing."""
     return LookupStep(name=name, tool=tool, params=params, output_key=output_key)
 
 
-def _make_tool(name: str, tool: str, params: Dict[str, Any], output_key: str) -> ToolStep:
+def _make_tool(
+    name: str, tool: str, params: Dict[str, Any], output_key: str
+) -> ToolStep:
     """Create a ToolStep for testing."""
     return ToolStep(name=name, tool=tool, params=params, output_key=output_key)
 
@@ -73,8 +75,18 @@ class TestDetectParallelGroups:
     def test_two_independent_lookups_detected(self):
         """Two consecutive lookups with no cross-dependency are detected as parallelizable."""
         steps = [
-            _make_lookup("fetch_orders", "get_orders", {"customer_id": "${customer_id}"}, "orders"),
-            _make_lookup("fetch_profile", "get_profile", {"customer_id": "${customer_id}"}, "profile"),
+            _make_lookup(
+                "fetch_orders",
+                "get_orders",
+                {"customer_id": "${customer_id}"},
+                "orders",
+            ),
+            _make_lookup(
+                "fetch_profile",
+                "get_profile",
+                {"customer_id": "${customer_id}"},
+                "profile",
+            ),
         ]
 
         groups = _detect_parallel_groups(steps)
@@ -88,8 +100,18 @@ class TestDetectParallelGroups:
         """Two consecutive lookups where the second depends on the first's output_key
         are NOT parallelized."""
         steps = [
-            _make_lookup("fetch_orders", "get_orders", {"customer_id": "${customer_id}"}, "orders"),
-            _make_lookup("fetch_order_details", "get_details", {"order_data": "${orders}"}, "details"),
+            _make_lookup(
+                "fetch_orders",
+                "get_orders",
+                {"customer_id": "${customer_id}"},
+                "orders",
+            ),
+            _make_lookup(
+                "fetch_order_details",
+                "get_details",
+                {"order_data": "${orders}"},
+                "details",
+            ),
         ]
 
         groups = _detect_parallel_groups(steps)
@@ -99,9 +121,24 @@ class TestDetectParallelGroups:
     def test_three_independent_lookups(self):
         """Three independent lookups should form one group of three."""
         steps = [
-            _make_lookup("fetch_orders", "get_orders", {"customer_id": "${customer_id}"}, "orders"),
-            _make_lookup("fetch_profile", "get_profile", {"customer_id": "${customer_id}"}, "profile"),
-            _make_lookup("fetch_settings", "get_settings", {"customer_id": "${customer_id}"}, "settings"),
+            _make_lookup(
+                "fetch_orders",
+                "get_orders",
+                {"customer_id": "${customer_id}"},
+                "orders",
+            ),
+            _make_lookup(
+                "fetch_profile",
+                "get_profile",
+                {"customer_id": "${customer_id}"},
+                "profile",
+            ),
+            _make_lookup(
+                "fetch_settings",
+                "get_settings",
+                {"customer_id": "${customer_id}"},
+                "settings",
+            ),
         ]
 
         groups = _detect_parallel_groups(steps)
@@ -112,8 +149,18 @@ class TestDetectParallelGroups:
     def test_mixed_independent_and_dependent(self):
         """First two are independent, third depends on first — group should be size 2."""
         steps = [
-            _make_lookup("fetch_orders", "get_orders", {"customer_id": "${customer_id}"}, "orders"),
-            _make_lookup("fetch_profile", "get_profile", {"customer_id": "${customer_id}"}, "profile"),
+            _make_lookup(
+                "fetch_orders",
+                "get_orders",
+                {"customer_id": "${customer_id}"},
+                "orders",
+            ),
+            _make_lookup(
+                "fetch_profile",
+                "get_profile",
+                {"customer_id": "${customer_id}"},
+                "profile",
+            ),
             _make_lookup("enrich_orders", "enrich", {"data": "${orders}"}, "enriched"),
         ]
 
@@ -127,7 +174,12 @@ class TestDetectParallelGroups:
     def test_single_lookup_not_parallelized(self):
         """A single lookup step should not form a parallel group."""
         steps = [
-            _make_lookup("fetch_orders", "get_orders", {"customer_id": "${customer_id}"}, "orders"),
+            _make_lookup(
+                "fetch_orders",
+                "get_orders",
+                {"customer_id": "${customer_id}"},
+                "orders",
+            ),
         ]
 
         groups = _detect_parallel_groups(steps)
@@ -136,13 +188,23 @@ class TestDetectParallelGroups:
     def test_non_lookup_tool_steps_break_run(self):
         """Non-lookup/tool steps break the consecutive run."""
         steps = [
-            _make_lookup("fetch_orders", "get_orders", {"customer_id": "${customer_id}"}, "orders"),
+            _make_lookup(
+                "fetch_orders",
+                "get_orders",
+                {"customer_id": "${customer_id}"},
+                "orders",
+            ),
             ReasonStep(
                 name="think",
                 prompt="analyze",
                 output_key="analysis",
             ),
-            _make_lookup("fetch_profile", "get_profile", {"customer_id": "${customer_id}"}, "profile"),
+            _make_lookup(
+                "fetch_profile",
+                "get_profile",
+                {"customer_id": "${customer_id}"},
+                "profile",
+            ),
         ]
 
         groups = _detect_parallel_groups(steps)
@@ -163,7 +225,12 @@ class TestDetectParallelGroups:
     def test_mixed_lookup_and_tool_parallelized(self):
         """A mix of independent lookup and tool steps should parallelize."""
         steps = [
-            _make_lookup("fetch_orders", "get_orders", {"customer_id": "${customer_id}"}, "orders"),
+            _make_lookup(
+                "fetch_orders",
+                "get_orders",
+                {"customer_id": "${customer_id}"},
+                "orders",
+            ),
             _make_tool("log_access", "log", {"user": "${customer_id}"}, "log_result"),
         ]
 
@@ -194,7 +261,9 @@ class TestExtractParamReferences:
         assert refs == {"customer_id"}
 
     def test_multiple_references(self):
-        step = _make_lookup("s", "t", {"id": "${customer_id}", "order": "${order_id}"}, "out")
+        step = _make_lookup(
+            "s", "t", {"id": "${customer_id}", "order": "${order_id}"}, "out"
+        )
         refs = _extract_param_references(step)
         assert refs == {"customer_id", "order_id"}
 
@@ -223,7 +292,17 @@ class TestMakeParallelNode:
             data["orders"] = [{"id": "ORD-1"}]
             return {
                 "data": data,
-                "traces": state["traces"] + [{"step_name": "a", "step_type": "lookup", "status": "completed", "output": None, "error": None, "duration_ms": 1.0}],
+                "traces": state["traces"]
+                + [
+                    {
+                        "step_name": "a",
+                        "step_type": "lookup",
+                        "status": "completed",
+                        "output": None,
+                        "error": None,
+                        "duration_ms": 1.0,
+                    }
+                ],
                 "steps_executed": state["steps_executed"] + ["a"],
             }
 
@@ -232,7 +311,17 @@ class TestMakeParallelNode:
             data["profile"] = {"name": "Test User"}
             return {
                 "data": data,
-                "traces": state["traces"] + [{"step_name": "b", "step_type": "lookup", "status": "completed", "output": None, "error": None, "duration_ms": 2.0}],
+                "traces": state["traces"]
+                + [
+                    {
+                        "step_name": "b",
+                        "step_type": "lookup",
+                        "status": "completed",
+                        "output": None,
+                        "error": None,
+                        "duration_ms": 2.0,
+                    }
+                ],
                 "steps_executed": state["steps_executed"] + ["b"],
             }
 
@@ -252,14 +341,34 @@ class TestMakeParallelNode:
         def node_a(state: ExecutionState) -> dict:
             return {
                 "data": dict(state.get("data", {})),
-                "traces": state["traces"] + [{"step_name": "a", "step_type": "lookup", "status": "completed", "output": "a_out", "error": None, "duration_ms": 1.0}],
+                "traces": state["traces"]
+                + [
+                    {
+                        "step_name": "a",
+                        "step_type": "lookup",
+                        "status": "completed",
+                        "output": "a_out",
+                        "error": None,
+                        "duration_ms": 1.0,
+                    }
+                ],
                 "steps_executed": state["steps_executed"] + ["a"],
             }
 
         def node_b(state: ExecutionState) -> dict:
             return {
                 "data": dict(state.get("data", {})),
-                "traces": state["traces"] + [{"step_name": "b", "step_type": "lookup", "status": "completed", "output": "b_out", "error": None, "duration_ms": 2.0}],
+                "traces": state["traces"]
+                + [
+                    {
+                        "step_name": "b",
+                        "step_type": "lookup",
+                        "status": "completed",
+                        "output": "b_out",
+                        "error": None,
+                        "duration_ms": 2.0,
+                    }
+                ],
                 "steps_executed": state["steps_executed"] + ["b"],
             }
 
@@ -278,14 +387,34 @@ class TestMakeParallelNode:
         def node_a(state: ExecutionState) -> dict:
             return {
                 "data": dict(state.get("data", {})),
-                "traces": state["traces"] + [{"step_name": "a", "step_type": "lookup", "status": "completed", "output": None, "error": None, "duration_ms": 1.0}],
+                "traces": state["traces"]
+                + [
+                    {
+                        "step_name": "a",
+                        "step_type": "lookup",
+                        "status": "completed",
+                        "output": None,
+                        "error": None,
+                        "duration_ms": 1.0,
+                    }
+                ],
                 "steps_executed": state["steps_executed"] + ["a"],
             }
 
         def node_b(state: ExecutionState) -> dict:
             return {
                 "data": dict(state.get("data", {})),
-                "traces": state["traces"] + [{"step_name": "b", "step_type": "lookup", "status": "completed", "output": None, "error": None, "duration_ms": 2.0}],
+                "traces": state["traces"]
+                + [
+                    {
+                        "step_name": "b",
+                        "step_type": "lookup",
+                        "status": "completed",
+                        "output": None,
+                        "error": None,
+                        "duration_ms": 2.0,
+                    }
+                ],
                 "steps_executed": state["steps_executed"] + ["b"],
             }
 
@@ -304,7 +433,17 @@ class TestMakeParallelNode:
             data["orders"] = [{"id": "ORD-1", "amount": 99.99}]
             return {
                 "data": data,
-                "traces": state["traces"] + [{"step_name": "fetch_orders", "step_type": "lookup", "status": "completed", "output": data["orders"], "error": None, "duration_ms": 5.0}],
+                "traces": state["traces"]
+                + [
+                    {
+                        "step_name": "fetch_orders",
+                        "step_type": "lookup",
+                        "status": "completed",
+                        "output": data["orders"],
+                        "error": None,
+                        "duration_ms": 5.0,
+                    }
+                ],
                 "steps_executed": state["steps_executed"] + ["fetch_orders"],
             }
 
@@ -313,7 +452,17 @@ class TestMakeParallelNode:
             data["profile"] = {"name": "Test", "tier": "gold"}
             return {
                 "data": data,
-                "traces": state["traces"] + [{"step_name": "fetch_profile", "step_type": "lookup", "status": "completed", "output": data["profile"], "error": None, "duration_ms": 3.0}],
+                "traces": state["traces"]
+                + [
+                    {
+                        "step_name": "fetch_profile",
+                        "step_type": "lookup",
+                        "status": "completed",
+                        "output": data["profile"],
+                        "error": None,
+                        "duration_ms": 3.0,
+                    }
+                ],
                 "steps_executed": state["steps_executed"] + ["fetch_profile"],
             }
 
@@ -329,7 +478,9 @@ class TestMakeParallelNode:
         seq_result_b = node_b(seq_state_after_a)
 
         # --- Parallel execution ---
-        parallel_fn = _make_parallel_node([node_a, node_b], ["fetch_orders", "fetch_profile"])
+        parallel_fn = _make_parallel_node(
+            [node_a, node_b], ["fetch_orders", "fetch_profile"]
+        )
         par_result = parallel_fn(state)
 
         # Both should have the same data keys
@@ -354,7 +505,17 @@ class TestMakeParallelNode:
             data["new_key"] = "new_value"
             return {
                 "data": data,
-                "traces": state["traces"] + [{"step_name": "a", "step_type": "lookup", "status": "completed", "output": None, "error": None, "duration_ms": 1.0}],
+                "traces": state["traces"]
+                + [
+                    {
+                        "step_name": "a",
+                        "step_type": "lookup",
+                        "status": "completed",
+                        "output": None,
+                        "error": None,
+                        "duration_ms": 1.0,
+                    }
+                ],
                 "steps_executed": state["steps_executed"] + ["a"],
             }
 
@@ -387,8 +548,18 @@ class TestParallelGraphCompilation:
             description="Test parallel execution",
             trigger=Trigger(description="test"),
             steps=[
-                _make_lookup("fetch_orders", "get_orders", {"customer_id": "${customer_id}"}, "orders"),
-                _make_lookup("fetch_profile", "get_profile", {"customer_id": "${customer_id}"}, "profile"),
+                _make_lookup(
+                    "fetch_orders",
+                    "get_orders",
+                    {"customer_id": "${customer_id}"},
+                    "orders",
+                ),
+                _make_lookup(
+                    "fetch_profile",
+                    "get_profile",
+                    {"customer_id": "${customer_id}"},
+                    "profile",
+                ),
                 BranchStep(
                     name="check_vip",
                     condition="${eligible}",
@@ -407,16 +578,19 @@ class TestParallelGraphCompilation:
         )
 
         tools = ToolRegistry()
-        tools.register("get_orders", lambda customer_id="": {"orders": [{"id": "ORD-1"}]})
-        tools.register("get_profile", lambda customer_id="": {"name": "Test", "tier": "gold"})
+        tools.register(
+            "get_orders", lambda customer_id="": {"orders": [{"id": "ORD-1"}]}
+        )
+        tools.register(
+            "get_profile", lambda customer_id="": {"name": "Test", "tier": "gold"}
+        )
 
         mock_client = MagicMock()
         knowledge = KnowledgeLoader(spec)
 
         factory = NodeFactory(
             spec=spec,
-            client=mock_client,
-            model="test-model",
+            gateway=mock_client,
             tools=tools,
             knowledge=knowledge,
         )
@@ -443,8 +617,18 @@ class TestParallelGraphCompilation:
             description="End-to-end parallel test",
             trigger=Trigger(description="test"),
             steps=[
-                _make_lookup("fetch_orders", "get_orders", {"customer_id": "${customer_id}"}, "orders"),
-                _make_lookup("fetch_profile", "get_profile", {"customer_id": "${customer_id}"}, "profile"),
+                _make_lookup(
+                    "fetch_orders",
+                    "get_orders",
+                    {"customer_id": "${customer_id}"},
+                    "orders",
+                ),
+                _make_lookup(
+                    "fetch_profile",
+                    "get_profile",
+                    {"customer_id": "${customer_id}"},
+                    "profile",
+                ),
                 RespondStep(name="summarize", prompt="Summarize the data"),
             ],
         )
@@ -456,8 +640,12 @@ class TestParallelGraphCompilation:
         )
 
         tools = ToolRegistry()
-        tools.register("get_orders", lambda customer_id="": [{"id": "ORD-1", "amount": 50}])
-        tools.register("get_profile", lambda customer_id="": {"name": "Alice", "vip": True})
+        tools.register(
+            "get_orders", lambda customer_id="": [{"id": "ORD-1", "amount": 50}]
+        )
+        tools.register(
+            "get_profile", lambda customer_id="": {"name": "Alice", "vip": True}
+        )
 
         gateway_config = GatewayConfig(
             base_url="http://localhost:9999",
@@ -478,6 +666,7 @@ class TestParallelGraphCompilation:
         mock_response.content = [mock_content]
 
         from unittest.mock import patch
+
         with patch.object(executor.client, "messages") as mock_messages:
             mock_messages.create.return_value = mock_response
 
@@ -510,8 +699,18 @@ class TestParallelGraphCompilation:
             description="Test sequential execution preserved",
             trigger=Trigger(description="test"),
             steps=[
-                _make_lookup("fetch_orders", "get_orders", {"customer_id": "${customer_id}"}, "orders"),
-                _make_lookup("fetch_details", "get_order_details", {"order_data": "${orders}"}, "details"),
+                _make_lookup(
+                    "fetch_orders",
+                    "get_orders",
+                    {"customer_id": "${customer_id}"},
+                    "orders",
+                ),
+                _make_lookup(
+                    "fetch_details",
+                    "get_order_details",
+                    {"order_data": "${orders}"},
+                    "details",
+                ),
                 RespondStep(name="summarize", prompt="Summarize"),
             ],
         )
@@ -555,6 +754,7 @@ class TestParallelGraphCompilation:
         mock_response.content = [mock_content]
 
         from unittest.mock import patch
+
         with patch.object(executor.client, "messages") as mock_messages:
             mock_messages.create.return_value = mock_response
 
