@@ -17,17 +17,18 @@ Design decisions:
 from __future__ import annotations
 
 import uuid
+from dataclasses import replace as dataclasses_replace
 from pathlib import Path
 from typing import Any, Optional
 
 from langgraph.checkpoint.memory import MemorySaver
 
 from flowstrix.engine.context import ExecutionContext, StepStatus, StepTrace
+from flowstrix.engine.executor import ToolRegistry
 from flowstrix.engine.graph import compile_journey_graph
 from flowstrix.engine.nodes import NodeFactory
 from flowstrix.engine.state import ExecutionState
-from flowstrix.engine.executor import ToolRegistry
-from flowstrix.gateway import GatewayConfig, create_client, resolve_model
+from flowstrix.gateway import ChatGateway, GatewayConfig, resolve_chain, resolve_model
 from flowstrix.knowledge.loader import KnowledgeLoader
 from flowstrix.schema.models import AgentSpec, HandoffStep, Journey
 
@@ -59,12 +60,16 @@ class LangGraphExecutor:
         self.spec = spec
         self.tools = tools or ToolRegistry()
 
-        # Gateway setup
+        # Gateway setup — ChatGateway adds automatic provider fallback +
+        # Upstash response caching on top of the resolved primary config.
         if gateway_config is None:
             gateway_config = GatewayConfig.from_env()
+        if model:
+            gateway_config = dataclasses_replace(
+                gateway_config, model=resolve_model(model)
+            )
 
-        self.client = create_client(gateway_config)
-        self.model = resolve_model(model or gateway_config.model)
+        self.gateway = ChatGateway(resolve_chain(gateway_config))
 
         # Knowledge
         self.knowledge = KnowledgeLoader(spec, base_path=knowledge_base_path)
@@ -75,8 +80,7 @@ class LangGraphExecutor:
         # Node factory (captures all dependencies)
         self.node_factory = NodeFactory(
             spec=spec,
-            client=self.client,
-            model=self.model,
+            gateway=self.gateway,
             tools=self.tools,
             knowledge=self.knowledge,
         )
@@ -117,7 +121,9 @@ class LangGraphExecutor:
             thread_id = str(uuid.uuid4())
 
         # --- Multi-turn resume: if this thread is paused at a wait step, resume it ---
-        if thread_id in self._threads and self._threads[thread_id].get("waiting_for_input"):
+        if thread_id in self._threads and self._threads[thread_id].get(
+            "waiting_for_input"
+        ):
             return self._resume_from_wait(thread_id, user_message)
 
         # --- Fresh execution ---
@@ -158,7 +164,7 @@ class LangGraphExecutor:
         try:
             # invoke() runs until completion or interrupt
             result_state = compiled_graph.invoke(initial_state, config=config)
-        except Exception as e:
+        except Exception:
             # Graph execution failed
             ctx = self._state_to_context(initial_state)
             ctx.status = StepStatus.FAILED
@@ -193,7 +199,7 @@ class LangGraphExecutor:
         # Resume from the interrupt point (invoke with None continues)
         try:
             result_state = graph.invoke(None, config=config)
-        except Exception as e:
+        except Exception:
             ctx = ExecutionContext(
                 journey_name=journey_name,
                 agent_id=self.spec.agent,
@@ -205,9 +211,7 @@ class LangGraphExecutor:
         self._threads[thread_id]["waiting_for_input"] = False
 
         # Check for new interrupts (could hit another wait or HITL)
-        return self._handle_interrupt(
-            graph, config, result_state, journey, thread_id
-        )
+        return self._handle_interrupt(graph, config, result_state, journey, thread_id)
 
     def _handle_interrupt(
         self,
@@ -218,7 +222,6 @@ class LangGraphExecutor:
         thread_id: str,
     ) -> ExecutionContext:
         """Check if graph was interrupted (HITL or Wait) and set state accordingly."""
-        from flowstrix.schema.models import WaitStep as WaitStepModel
 
         graph_state = compiled_graph.get_state(config)
         if graph_state.next:
@@ -231,6 +234,7 @@ class LangGraphExecutor:
                 # Handoff interrupts before the node runs, so we need to
                 # determine if it WOULD trigger based on current state + mode
                 from flowstrix.engine.nodes import _resolve_expression
+
                 interaction_mode = result_state.get("interaction_mode", "agent_driven")
                 if interaction_mode == "structured":
                     should_handoff = True
@@ -272,14 +276,20 @@ class LangGraphExecutor:
                     result_state["waiting_for_human"] = True
                     result_state["status"] = "waiting_handoff"
                     result_state["handoff_form"] = form_spec
-                    result_state["messages"] = list(result_state.get("messages", [])) + [
-                        {"role": "assistant", "content": handoff_step.transition_message}
+                    result_state["messages"] = list(
+                        result_state.get("messages", [])
+                    ) + [
+                        {
+                            "role": "assistant",
+                            "content": handoff_step.transition_message,
+                        }
                     ]
             else:
                 # Check if it's a HITL step
                 hitl_step = self._find_hitl_step(journey, pending_node)
                 if hitl_step:
                     from flowstrix.engine.nodes import _resolve_expression
+
                     should_escalate = _resolve_expression(
                         result_state.get("data", {}), hitl_step.condition
                     )
@@ -347,7 +357,7 @@ class LangGraphExecutor:
         try:
             graph.update_state(config, update_state)
             result_state = graph.invoke(None, config=config)
-        except Exception as e:
+        except Exception:
             # Resume failed
             ctx = ExecutionContext(
                 journey_name=journey_name,
@@ -357,9 +367,7 @@ class LangGraphExecutor:
             return ctx
 
         # Check for further interrupts (e.g., hits a wait step after HITL)
-        return self._handle_interrupt(
-            graph, config, result_state, journey, thread_id
-        )
+        return self._handle_interrupt(graph, config, result_state, journey, thread_id)
 
     def _store_thread(
         self,
@@ -412,7 +420,11 @@ class LangGraphExecutor:
 
         # Determine the output_key from the handoff_form spec
         handoff_form = current_state.get("handoff_form")
-        output_key = handoff_form.get("output_key", "handoff_data") if handoff_form else "handoff_data"
+        output_key = (
+            handoff_form.get("output_key", "handoff_data")
+            if handoff_form
+            else "handoff_data"
+        )
 
         # Build the state update: inject form data under the output_key,
         # clear handoff state, and mark as running again
@@ -427,13 +439,15 @@ class LangGraphExecutor:
 
         # Record the handoff step in traces and steps_executed
         traces = list(current_state.get("traces", []))
-        traces.append({
-            "step_name": handoff_node_name or "handoff",
-            "step_type": "handoff",
-            "status": "completed",
-            "output": "form submitted",
-            "duration_ms": 0,
-        })
+        traces.append(
+            {
+                "step_name": handoff_node_name or "handoff",
+                "step_type": "handoff",
+                "status": "completed",
+                "output": "form submitted",
+                "duration_ms": 0,
+            }
+        )
         steps_executed = list(current_state.get("steps_executed", []))
         if handoff_node_name:
             steps_executed.append(handoff_node_name)
@@ -453,7 +467,7 @@ class LangGraphExecutor:
         try:
             graph.update_state(config, update_state, as_node=handoff_node_name)
             result_state = graph.invoke(None, config=config)
-        except Exception as e:
+        except Exception:
             # Resume failed
             ctx = ExecutionContext(
                 journey_name=thread_info["journey_name"],
@@ -479,6 +493,7 @@ class LangGraphExecutor:
         if not step_name:
             return None
         from flowstrix.schema.models import HITLStep
+
         for step in journey.steps:
             if step.name == step_name and isinstance(step, HITLStep):
                 return step
@@ -489,6 +504,7 @@ class LangGraphExecutor:
         if not step_name:
             return None
         from flowstrix.schema.models import WaitStep as WaitStepModel
+
         for step in journey.steps:
             if step.name == step_name and isinstance(step, WaitStepModel):
                 return step
@@ -537,7 +553,11 @@ class LangGraphExecutor:
             trace = StepTrace(
                 step_name=trace_entry["step_name"],
                 step_type=trace_entry["step_type"],
-                status=StepStatus.COMPLETED if trace_entry["status"] == "completed" else StepStatus.FAILED,
+                status=(
+                    StepStatus.COMPLETED
+                    if trace_entry["status"] == "completed"
+                    else StepStatus.FAILED
+                ),
                 started_at=0,  # Not tracked in graph state (simplification)
                 completed_at=0,
                 output=trace_entry.get("output"),
@@ -547,7 +567,9 @@ class LangGraphExecutor:
             ctx.traces.append(trace)
 
         # Set status
-        ctx.status = status_map.get(state.get("status", "completed"), StepStatus.COMPLETED)
+        ctx.status = status_map.get(
+            state.get("status", "completed"), StepStatus.COMPLETED
+        )
 
         # HITL state
         ctx.waiting_for_human = state.get("waiting_for_human", False)
