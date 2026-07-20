@@ -36,6 +36,11 @@ dev = [
     "ruff>=0.5",
     "mypy>=1.10",
 ]
+docs = [
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.5.0",
+    "pymdown-extensions>=10.8",
+]
 
 [project.scripts]
 flowstrix = "flowstrix.cli:app"

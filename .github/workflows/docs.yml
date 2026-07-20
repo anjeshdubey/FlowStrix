@@ -1,0 +1,87 @@
+name: docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "engineering-docs/**"
+      - "mkdocs.yml"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "engineering-docs/**"
+      - "mkdocs.yml"
+      - ".github/workflows/docs.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  mkdocs-build-strict:
+    name: mkdocs build --strict
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - name: install docs dependencies
+        run: pip install ".[docs]"
+      - name: build (throwaway output, not committed)
+        run: mkdocs build --strict
+
+  engineering-docs-publish:
+    name: docs/engineering/ auto-rebuild (main only)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - name: install docs dependencies
+        run: pip install ".[docs]"
+      - name: build engineering docs
+        run: mkdocs build --strict
+      - name: commit + push if docs/engineering/ changed
+        env:
+          BOT_COMMIT_PREFIX: "chore(docs): rebuild engineering docs"
+        run: |
+          if [ -z "$(git status --porcelain -- docs/engineering)" ]; then
+            echo "docs/engineering/ already in sync"
+            exit 0
+          fi
+          last_msg=$(git log -1 --pretty=%s)
+          if [[ "$last_msg" == "$BOT_COMMIT_PREFIX"* ]]; then
+            echo "last commit was already a bot regen; not pushing to avoid loop"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/engineering
+          git commit -m "$BOT_COMMIT_PREFIX"
+          branch="${GITHUB_REF#refs/heads/}"
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:${branch}"; then
+              echo "push succeeded on attempt $attempt"
+              exit 0
+            fi
+            echo "push attempt $attempt rejected; rebasing onto origin/${branch}"
+            git fetch origin "${branch}"
+            if ! git rebase "origin/${branch}"; then
+              echo "rebase produced a conflict; aborting and giving up cleanly"
+              git rebase --abort || true
+              exit 0
+            fi
+            sleep "$((attempt * 2))"
+          done
+          echo "push failed after 5 attempts; main will self-heal on next push"
+          exit 0
