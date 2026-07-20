@@ -1,46 +1,42 @@
 """
-FlowStrix Gateway — LLM client factory for internal corporate gateway.
+FlowStrix Gateway — LLM client factory.
 
-The gateway is Anthropic-compatible but requires:
-- Custom base URL (eng-ai-model-gateway)
-- Auth token (not standard ANTHROPIC_API_KEY)
-- Model name mapping (global.anthropic.* prefix)
-- Corporate TLS cert for SSL verification
+Supports both Groq and Gemini via their OpenAI-compatible APIs.
 
 Environment variables:
-    ANTHROPIC_AUTH_TOKEN     — Gateway auth token
-    ANTHROPIC_BASE_URL      — Gateway base URL
-    SSL_CERT_FILE           — Path to corporate CA cert (optional)
-    FLOWSTRIX_MODEL         — Override default model name
+    GEMINI_API_KEY      — Google Gemini API key (recommended)
+    GROQ_API_KEY        — Groq API key
+    FLOWSTRIX_MODEL     — Override default model (e.g. gemini-2.5-flash, llama-3.3-70b-versatile)
 """
 
 from __future__ import annotations
 
 import os
-import ssl
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-import httpx
-from anthropic import Anthropic
+from openai import OpenAI
 
 
-# Default gateway configuration (internal corporate)
-DEFAULT_BASE_URL = "https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl"
-DEFAULT_MODEL = "global.anthropic.claude-sonnet-4-6"
-DEFAULT_CERT_PATH = os.path.expanduser("~/.aisuite/conf/npm-sfdc-certs.pem")
+# Base URLs
+GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
+# Default models
+DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
+DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# Model alias mapping — so YAML specs can use short names
-MODEL_ALIASES = {
-    # Short name -> gateway model ID
-    "claude-sonnet": "global.anthropic.claude-sonnet-4-6",
-    "claude-haiku": "global.anthropic.claude-haiku-4-5-20251001-v1:0",
-    "claude-opus": "global.anthropic.claude-opus-4-7",
-    # Allow full names too
-    "claude-sonnet-4-6": "global.anthropic.claude-sonnet-4-6",
-    "claude-haiku-4-5": "global.anthropic.claude-haiku-4-5-20251001-v1:0",
-    "claude-opus-4-6": "global.anthropic.claude-opus-4-6-v1",
-    "claude-opus-4-7": "global.anthropic.claude-opus-4-7",
+# Model alias mapping — short names → full model IDs
+MODEL_ALIASES: dict[str, str] = {
+    # Gemini Aliases
+    "gemini-flash": "gemini-3.5-flash",
+    "gemini-pro": "gemini-3.5-pro",
+    "gemini-2.5-flash": "gemini-3.5-flash",  # Fallback for old references
+    "gemini-2.5-pro": "gemini-3.5-pro",      # Fallback for old references
+    # Groq Aliases
+    "llama-70b": "llama-3.3-70b-versatile",
+    "llama-8b": "llama-3.1-8b-instant",
+    "mixtral": "mixtral-8x7b-32768",
+    "gemma-9b": "gemma2-9b-it",
 }
 
 
@@ -51,45 +47,44 @@ class GatewayConfig:
     base_url: str
     auth_token: str
     model: str
+    provider: str
     cert_path: str | None = None
+    extra_headers: dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def from_env(cls) -> "GatewayConfig":
         """Load gateway config from environment variables.
 
-        Reads:
-            ANTHROPIC_AUTH_TOKEN — required
-            ANTHROPIC_BASE_URL — defaults to internal gateway
-            FLOWSTRIX_MODEL — defaults to claude-sonnet-4-6
-            SSL_CERT_FILE — defaults to ~/.aisuite/conf/npm-sfdc-certs.pem
+        Detects if GEMINI_API_KEY or GROQ_API_KEY is configured.
         """
-        auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "")
-        if not auth_token:
-            # Fallback to standard key for local dev
-            auth_token = os.environ.get("ANTHROPIC_API_KEY", "")
+        gemini_key = os.environ.get("GEMINI_API_KEY", "")
+        groq_key = os.environ.get("GROQ_API_KEY", "")
 
-        if not auth_token:
+        if gemini_key:
+            provider = "gemini"
+            auth_token = gemini_key
+            base_url = GEMINI_BASE_URL
+            default_model = DEFAULT_GEMINI_MODEL
+        elif groq_key:
+            provider = "groq"
+            auth_token = groq_key
+            base_url = GROQ_BASE_URL
+            default_model = DEFAULT_GROQ_MODEL
+        else:
             raise GatewayConfigError(
-                "No auth token found. Set ANTHROPIC_AUTH_TOKEN or ANTHROPIC_API_KEY.\n"
-                "For corporate gateway: export ANTHROPIC_AUTH_TOKEN=<your-token>"
+                "No API key found. Set GEMINI_API_KEY or GROQ_API_KEY in your .env file.\n"
+                "Get a Gemini key at: https://aistudio.google.com\n"
+                "Get a Groq key at: https://console.groq.com"
             )
 
-        base_url = os.environ.get("ANTHROPIC_BASE_URL", DEFAULT_BASE_URL)
-        model = os.environ.get("FLOWSTRIX_MODEL", DEFAULT_MODEL)
-        cert_path = os.environ.get("SSL_CERT_FILE", DEFAULT_CERT_PATH)
-
-        # Resolve model alias
+        model = os.environ.get("FLOWSTRIX_MODEL", default_model)
         model = MODEL_ALIASES.get(model, model)
-
-        # Check cert exists
-        if cert_path and not os.path.exists(cert_path):
-            cert_path = None  # Will use system default
 
         return cls(
             base_url=base_url,
             auth_token=auth_token,
             model=model,
-            cert_path=cert_path,
+            provider=provider,
         )
 
 
@@ -99,41 +94,24 @@ class GatewayConfigError(Exception):
     pass
 
 
-def create_client(config: GatewayConfig | None = None) -> Anthropic:
-    """Create an Anthropic client configured for the LLM gateway.
+def create_client(config: GatewayConfig | None = None) -> OpenAI:
+    """Create an OpenAI-compatible client.
 
     Args:
         config: Gateway configuration. If None, loads from environment.
 
     Returns:
-        Configured Anthropic client pointing at the gateway.
+        Configured OpenAI client pointing at the selected provider.
     """
     if config is None:
         config = GatewayConfig.from_env()
 
-    # Build httpx client with custom TLS if cert provided
-    http_client = None
-    if config.cert_path:
-        ssl_context = ssl.create_default_context(cafile=config.cert_path)
-        http_client = httpx.Client(verify=ssl_context)
-
-    client_kwargs = {
-        "api_key": config.auth_token,
-        "base_url": config.base_url,
-    }
-
-    if http_client:
-        client_kwargs["http_client"] = http_client
-
-    return Anthropic(**client_kwargs)
+    return OpenAI(
+        api_key=config.auth_token,
+        base_url=config.base_url,
+    )
 
 
 def resolve_model(model_name: str) -> str:
-    """Resolve a short model name to the gateway's full model ID.
-
-    Examples:
-        "claude-sonnet" -> "global.anthropic.claude-sonnet-4-6"
-        "claude-haiku"  -> "global.anthropic.claude-haiku-4-5-20251001-v1:0"
-        "global.anthropic.claude-opus-4-7" -> unchanged (already full)
-    """
+    """Resolve a short model name to the full provider model ID."""
     return MODEL_ALIASES.get(model_name, model_name)

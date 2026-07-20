@@ -19,7 +19,7 @@ import json
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from anthropic import Anthropic
+from openai import OpenAI
 
 from flowstrix.engine.context import ExecutionContext, StepStatus
 from flowstrix.gateway import GatewayConfig, create_client, resolve_model
@@ -273,16 +273,18 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
 {json.dumps(step.output_schema, indent=2)}
 """
 
-        # Call LLM
-        response = self.client.messages.create(
+        # Call LLM (OpenAI-compatible — works with Groq)
+        response = self.client.chat.completions.create(
             model=self.model,
             max_tokens=step.max_tokens,
             temperature=step.temperature,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_prompt}],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
         )
 
-        result_text = response.content[0].text
+        result_text = response.choices[0].message.content or ""
 
         # Try to parse as JSON if output_schema is defined
         if step.output_schema:
@@ -326,15 +328,17 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
         if step.tone:
             user_prompt += f"\n## Tone\n{step.tone}\n"
 
-        response = self.client.messages.create(
+        response = self.client.chat.completions.create(
             model=self.model,
             max_tokens=512,
             temperature=0.3,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_prompt}],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
         )
 
-        result = response.content[0].text
+        result = response.choices[0].message.content or ""
         ctx.add_message("assistant", result)
         return result
 

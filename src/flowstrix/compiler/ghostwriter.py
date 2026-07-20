@@ -20,10 +20,14 @@ from typing import Optional
 
 import instructor
 import yaml
-from anthropic import Anthropic
+from openai import OpenAI
 from pydantic import BaseModel, Field
 
 from flowstrix.gateway import GatewayConfig, create_client, resolve_model
+
+# Use a faster model with a higher free-tier TPM limit for Ghostwriter
+# llama-3.1-8b-instant: 20k TPM vs llama-3.3-70b-versatile: 12k TPM
+GHOSTWRITER_DEFAULT_MODEL = "llama-3.1-8b-instant"
 from flowstrix.schema.models import (
     AgentSpec,
     BranchStep,
@@ -137,8 +141,10 @@ class Ghostwriter:
             gateway_config = GatewayConfig.from_env()
 
         raw_client = create_client(gateway_config)
-        self.client = instructor.from_anthropic(raw_client)
-        self.model = resolve_model(model or gateway_config.model)
+        self.client = instructor.from_openai(raw_client)
+        # Default to the provider's standard model for Ghostwriting
+        default_model = "gemini-2.5-flash" if gateway_config.provider == "gemini" else GHOSTWRITER_DEFAULT_MODEL
+        self.model = resolve_model(model or default_model)
 
     def compile(
         self,
@@ -167,12 +173,14 @@ class Ghostwriter:
         )
 
         # Use Instructor for structured output directly into AgentSpec
-        spec = self.client.messages.create(
+        spec = self.client.chat.completions.create(
             model=self.model,
-            max_tokens=8192,
+            max_tokens=4096,
             max_retries=max_retries,
-            system=GHOSTWRITER_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_prompt}],
+            messages=[
+                {"role": "system", "content": GHOSTWRITER_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
             response_model=AgentSpec,
         )
 
@@ -216,12 +224,14 @@ class Ghostwriter:
 Update the agent spec to incorporate this refinement. Keep everything else unchanged unless it conflicts with the new requirement. Return the complete updated AgentSpec.
 """
 
-        spec = self.client.messages.create(
+        spec = self.client.chat.completions.create(
             model=self.model,
             max_tokens=8192,
             max_retries=max_retries,
-            system=GHOSTWRITER_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_prompt}],
+            messages=[
+                {"role": "system", "content": GHOSTWRITER_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
             response_model=AgentSpec,
         )
 
