@@ -37,3 +37,6 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Architecture: architecture.md
+  - Repository Layout: repository-layout.md
+  - Testing & Simulations: testing.md
