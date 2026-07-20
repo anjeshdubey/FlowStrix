@@ -407,14 +407,14 @@ Then on the next line, provide a brief explanation (one sentence).
 """
 
         try:
-            response = self.judge_client.messages.create(
+            response = self.judge_client.chat.completions.create(
                 model=self.model,
                 max_tokens=200,
                 temperature=0.0,
                 messages=[{"role": "user", "content": judge_prompt}],
             )
 
-            judge_text = response.content[0].text.strip()
+            judge_text = response.choices[0].message.content.strip()
             lines = judge_text.split("\n", 1)
             verdict_line = lines[0].strip().upper()
             explanation = lines[1].strip() if len(lines) > 1 else ""

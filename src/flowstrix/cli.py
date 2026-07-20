@@ -273,8 +273,7 @@ def run(
         console.print(f"[red]Gateway config error:[/red] {e}")
         console.print(
             "\n[dim]Set these environment variables:[/dim]\n"
-            "  export ANTHROPIC_AUTH_TOKEN=<your-token>\n"
-            "  export ANTHROPIC_BASE_URL=<gateway-url>  (optional, defaults to SF gateway)\n"
+            "  export GROQ_API_KEY=gsk_...  (get a free key at https://console.groq.com)\n"
         )
         raise typer.Exit(1)
 

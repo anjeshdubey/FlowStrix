@@ -18,7 +18,7 @@ import re
 import time
 from typing import Any, Callable
 
-from anthropic import Anthropic
+from openai import OpenAI
 
 from flowstrix.engine.state import ExecutionState, StepTraceEntry
 from flowstrix.schema.models import (
@@ -249,15 +249,17 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
 {json.dumps(step.output_schema, indent=2)}
 """
 
-            response = self.client.messages.create(
+            response = self.client.chat.completions.create(
                 model=self.model,
                 max_tokens=step.max_tokens,
                 temperature=step.temperature,
-                system=system_prompt,
-                messages=[{"role": "user", "content": user_prompt}],
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
             )
 
-            result_text = response.content[0].text
+            result_text = response.choices[0].message.content or ""
             if step.output_schema:
                 result = _parse_json_response(result_text)
             else:
@@ -307,15 +309,17 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
             if step.tone:
                 user_prompt += f"\n## Tone\n{step.tone}\n"
 
-            response = self.client.messages.create(
+            response = self.client.chat.completions.create(
                 model=self.model,
                 max_tokens=512,
                 temperature=0.3,
-                system=system_prompt,
-                messages=[{"role": "user", "content": user_prompt}],
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
             )
 
-            result = response.content[0].text
+            result = response.choices[0].message.content or ""
             messages = state["messages"] + [{"role": "assistant", "content": result}]
 
             duration = (time.time() - start) * 1000
