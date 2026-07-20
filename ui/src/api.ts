@@ -1,6 +1,12 @@
 import { GhostwriteRequest, GhostwriteResponse, HealthResponse, RunRequest, RunResponse, SpecDetail, SpecSummary, StepEvent } from './types'
 
-const BASE = '/api'
+// Local dev proxies /api -> localhost:8000 (see vite.config.ts). Anywhere else
+// (the GitHub Pages demo at anjesh.ai/FlowStrix/) talks to the deployed Modal
+// backend cross-origin — the FastAPI app sends permissive CORS.
+const isLocal =
+  typeof location !== 'undefined' &&
+  (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+const BASE = isLocal ? '/api' : 'https://anjeshdubey--flowstrix-demo-web.modal.run/api'
 
 async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
