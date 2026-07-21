@@ -1,21 +1,24 @@
 """
 FlowStrix Gateway — LLM client factory.
 
-Supports Groq, Gemini, and Anthropic via their OpenAI-compatible APIs.
+Supports Together AI, Groq, Gemini, and Anthropic via their OpenAI-compatible APIs.
 
 Environment variables:
-    GROQ_API_KEY                — Groq API key (default/primary — fastest + cheapest)
-    GEMINI_API_KEY              — Google Gemini API key (first fallback)
-    ANTHROPIC_API_KEY           — Anthropic API key (second fallback — most expensive, last resort)
+    TOGETHER_API_KEY            — Together AI API key (default/primary — paid tier, no free-tier throttling)
+    GROQ_API_KEY                — Groq API key (first fallback)
+    GEMINI_API_KEY              — Google Gemini API key (second fallback)
+    ANTHROPIC_API_KEY           — Anthropic API key (third fallback — most expensive, last resort)
     FLOWSTRIX_MODEL             — Override default model (e.g. gemini-2.5-flash, llama-3.3-70b-versatile)
     UPSTASH_REDIS_REST_URL      — Upstash Redis REST endpoint (optional, enables response caching)
     UPSTASH_REDIS_REST_TOKEN    — Upstash Redis REST token (optional, enables response caching)
 
-ChatGateway tries providers in that order — Groq, then Gemini, then
-Anthropic — automatically failing over on a rate-limit or provider error.
-Anthropic sits last because it's the most expensive per call; it only gets
-used when both cheaper providers are down. Recruiter-facing demos should
-never see a raw API failure.
+ChatGateway tries providers in that order — Together AI, then Groq, then
+Gemini, then Anthropic — automatically failing over on a rate-limit or
+provider error. Together AI sits first because it's a metered paid tier
+with no free-tier rate-limit games (unlike Groq/Gemini free tiers, which
+throttle unpredictably under demand). Anthropic sits last because it's the
+most expensive per call; it only gets used when everything else is down.
+Recruiter-facing demos should never see a raw API failure.
 """
 
 from __future__ import annotations
@@ -41,16 +44,25 @@ logger = logging.getLogger(__name__)
 
 
 # Base URLs
+TOGETHER_BASE_URL = "https://api.together.xyz/v1"
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1/"
 
 # Default models
+DEFAULT_TOGETHER_MODEL = "Qwen/Qwen2.5-7B-Instruct-Turbo"
 DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
 DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5"
 
 # Model alias mapping — short names → full model IDs
+# Note: Together AI only offers Llama 3.1 8B Instruct as a dedicated
+# (hourly-billed) endpoint, not serverless — so no 8B alias here. Only
+# list models confirmed serverless on Together's model catalog.
+TOGETHER_MODEL_ALIASES: dict[str, str] = {
+    "together-llama-70b": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "qwen-7b": "Qwen/Qwen2.5-7B-Instruct-Turbo",
+}
 GROQ_MODEL_ALIASES: dict[str, str] = {
     "llama-70b": "llama-3.3-70b-versatile",
     "llama-8b": "llama-3.1-8b-instant",
@@ -69,6 +81,7 @@ ANTHROPIC_MODEL_ALIASES: dict[str, str] = {
     "claude-haiku": "claude-haiku-4-5-20251001",
 }
 MODEL_ALIASES: dict[str, str] = {
+    **TOGETHER_MODEL_ALIASES,
     **GROQ_MODEL_ALIASES,
     **GEMINI_MODEL_ALIASES,
     **ANTHROPIC_MODEL_ALIASES,
@@ -122,8 +135,9 @@ class GatewayConfig:
     def from_env(cls) -> "GatewayConfig":
         """Load gateway config from environment variables.
 
-        Picks the first configured provider in priority order: Groq (default,
-        fastest + cheapest), then Gemini, then Anthropic.
+        Picks the first configured provider in priority order: Together AI
+        (default, metered paid tier — no free-tier throttling), then Groq,
+        then Gemini, then Anthropic.
         """
         chain = cls.chain_from_env()
         return chain[0]
@@ -132,18 +146,32 @@ class GatewayConfig:
     def chain_from_env(cls) -> list["GatewayConfig"]:
         """Build a priority-ordered provider chain from whichever API keys are set.
 
-        Order: Groq (default) → Gemini → Anthropic. Anthropic is last because
-        it's the most expensive per call — it's an emergency-only fallback,
-        not something a demo should lean on for routine traffic. Used by
-        ChatGateway so a rate-limited/erroring provider automatically fails
-        over to the next one.
+        Order: Together AI (default) → Groq → Gemini → Anthropic. Together AI
+        leads because it's a metered paid tier with no free-tier rate-limit
+        games. Anthropic is last because it's the most expensive per call —
+        it's an emergency-only fallback, not something a demo should lean on
+        for routine traffic. Used by ChatGateway so a rate-limited/erroring
+        provider automatically fails over to the next one.
         """
+        together_key = os.environ.get("TOGETHER_API_KEY", "")
         groq_key = os.environ.get("GROQ_API_KEY", "")
         gemini_key = os.environ.get("GEMINI_API_KEY", "")
         anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
         model_override = os.environ.get("FLOWSTRIX_MODEL", "")
 
         chain: list["GatewayConfig"] = []
+        if together_key:
+            model = _resolve_provider_model(
+                TOGETHER_MODEL_ALIASES, DEFAULT_TOGETHER_MODEL, model_override
+            )
+            chain.append(
+                cls(
+                    base_url=TOGETHER_BASE_URL,
+                    auth_token=together_key,
+                    model=model,
+                    provider="together",
+                )
+            )
         if groq_key:
             model = _resolve_provider_model(
                 GROQ_MODEL_ALIASES, DEFAULT_GROQ_MODEL, model_override
@@ -183,8 +211,9 @@ class GatewayConfig:
 
         if not chain:
             raise GatewayConfigError(
-                "No API key found. Set GROQ_API_KEY, GEMINI_API_KEY, or "
-                "ANTHROPIC_API_KEY in your .env file.\n"
+                "No API key found. Set TOGETHER_API_KEY, GROQ_API_KEY, "
+                "GEMINI_API_KEY, or ANTHROPIC_API_KEY in your .env file.\n"
+                "Get a Together AI key at: https://api.together.ai\n"
                 "Get a Groq key at: https://console.groq.com\n"
                 "Get a Gemini key at: https://aistudio.google.com\n"
                 "Get an Anthropic key at: https://console.anthropic.com"
