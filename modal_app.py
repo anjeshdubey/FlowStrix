@@ -16,11 +16,18 @@ never printed):
     modal secret create flowstrix-llm \\
         GROQ_API_KEY="$GROQ_API_KEY" \\
         GEMINI_API_KEY="$GEMINI_API_KEY" \\
-        ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY"
+        ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \\
+        TOGETHER_API_KEY="$TOGETHER_API_KEY" \\
+        UPSTASH_REDIS_REST_URL="$UPSTASH_REDIS_REST_URL" \\
+        UPSTASH_REDIS_REST_TOKEN="$UPSTASH_REDIS_REST_TOKEN" \\
+        --force
 
-The gateway tries Groq -> Gemini -> Anthropic with automatic failover (Groq
-first = cheapest / free-tier friendly), so the public demo runs on free tiers
-by default and only falls back to Anthropic if the cheaper providers error.
+The gateway tries Together AI -> Groq -> Gemini -> Anthropic with automatic
+failover (Together first = metered paid tier, no free-tier throttling), so
+the public demo stays reliable and only falls back to Groq/Gemini/Anthropic
+if Together errors. Upstash exact-match response caching is enabled
+automatically when UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN are
+present in the same secret.
 """
 
 from __future__ import annotations
