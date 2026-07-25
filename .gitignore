@@ -34,3 +34,6 @@ htmlcov/
 
 # Type checking
 .mypy_cache/
+
+# Private working notes (never push)
+CLAUDE.md
