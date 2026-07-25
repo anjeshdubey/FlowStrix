@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Loader2, Play } from 'lucide-react'
 import { JourneySummary, RunRequest, SpecSummary } from '../types'
 
 interface JourneyRunnerProps {
@@ -6,13 +7,22 @@ interface JourneyRunnerProps {
   specPath: string
   onRun: (request: RunRequest) => void
   disabled: boolean
+  initialJourneyName?: string
+  initialMessage?: string
 }
 
-export default function JourneyRunner({ spec, specPath, onRun, disabled }: JourneyRunnerProps) {
+export default function JourneyRunner({
+  spec,
+  specPath,
+  onRun,
+  disabled,
+  initialJourneyName,
+  initialMessage,
+}: JourneyRunnerProps) {
   const [selectedJourney, setSelectedJourney] = useState<JourneySummary | null>(
-    spec.journeys.length > 0 ? spec.journeys[0] : null
+    spec.journeys.find((j) => j.name === initialJourneyName) ?? (spec.journeys.length > 0 ? spec.journeys[0] : null)
   )
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState(initialMessage ?? '')
   const [contextStr, setContextStr] = useState('{"customer_id": "cust_123"}')
   const [contextError, setContextError] = useState<string | null>(null)
 
@@ -138,18 +148,12 @@ export default function JourneyRunner({ spec, specPath, onRun, disabled }: Journ
       >
         {disabled ? (
           <>
-            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
+            <Loader2 size={16} className="animate-spin" />
             Running...
           </>
         ) : (
           <>
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <Play size={16} />
             Execute Journey
           </>
         )}

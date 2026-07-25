@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { FileText, Loader2, Sparkles, TriangleAlert, Upload, X } from 'lucide-react'
 import { uploadFile } from '../../api'
 
 interface PromptEntryProps {
@@ -140,9 +141,7 @@ export default function PromptEntry({ onGenerate, loading }: PromptEntryProps) {
         {/* Upload status */}
         {uploadedFile && (
           <div className="flex items-center gap-2 mt-2 px-2 py-1.5 bg-forge-50 border border-forge-200 rounded-md">
-            <svg className="w-4 h-4 text-forge-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+            <FileText className="w-4 h-4 text-forge-600 flex-shrink-0" />
             <span className="text-xs text-forge-700 font-medium truncate">{uploadedFile}</span>
             <button
               onClick={() => {
@@ -151,9 +150,7 @@ export default function PromptEntry({ onGenerate, loading }: PromptEntryProps) {
               }}
               className="ml-auto text-gray-400 hover:text-gray-600"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
@@ -161,9 +158,7 @@ export default function PromptEntry({ onGenerate, loading }: PromptEntryProps) {
         {/* Upload error */}
         {uploadError && (
           <div className="mt-2 text-xs text-amber-600 flex items-center gap-1">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
+            <TriangleAlert className="w-3.5 h-3.5" />
             {uploadError}
           </div>
         )}
@@ -189,14 +184,9 @@ export default function PromptEntry({ onGenerate, loading }: PromptEntryProps) {
               title="Upload a file (.txt, .md, .docx, .pdf, .yaml)"
             >
               {uploading ? (
-                <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+                <Loader2 className="animate-spin w-3.5 h-3.5" />
               ) : (
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
+                <Upload className="w-3.5 h-3.5" />
               )}
               <span>{uploading ? 'Reading...' : 'Upload file'}</span>
             </button>
@@ -217,17 +207,12 @@ export default function PromptEntry({ onGenerate, loading }: PromptEntryProps) {
           >
             {loading ? (
               <>
-                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+                <Loader2 className="animate-spin w-4 h-4" />
                 Generating...
               </>
             ) : (
               <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+                <Sparkles className="w-4 h-4" />
                 Generate Journey
               </>
             )}

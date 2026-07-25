@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import { FlowStep } from './FlowCanvas'
 
 interface StepEditorProps {
@@ -23,9 +24,7 @@ export default function StepEditor({ step, index, onClose }: StepEditorProps) {
           onClick={onClose}
           className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <X className="w-4 h-4" />
         </button>
       </div>
 

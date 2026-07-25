@@ -1,3 +1,4 @@
+import { CheckCircle2, Play } from 'lucide-react'
 
 export interface FlowStep {
   name: string
@@ -54,9 +55,7 @@ export default function FlowCanvas({ steps, agentName, personaName, onStepClick,
 
       {/* Start node */}
       <div className="w-12 h-12 rounded-full bg-forge-600 flex items-center justify-center shadow-lg mb-2">
-        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M8 5v14l11-7z" />
-        </svg>
+        <Play className="w-5 h-5 text-white" fill="currentColor" />
       </div>
 
       {/* Steps */}
@@ -121,10 +120,7 @@ export default function FlowCanvas({ steps, agentName, personaName, onStepClick,
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0 border-t-[6px] border-t-gray-300 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent" />
       </div>
       <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center shadow-lg">
-        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
-        </svg>
+        <CheckCircle2 className="w-5 h-5 text-white" />
       </div>
     </div>
   )

@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { ArrowLeft } from 'lucide-react'
 import { ghostwrite, saveSpec } from '../../api'
 import { GhostwriteResponse } from '../../types'
 import PromptEntry from './PromptEntry'
@@ -223,9 +224,7 @@ export default function AuthorView() {
           onClick={handleBackToPrompt}
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <ArrowLeft className="w-4 h-4" />
           New Journey
         </button>
 
