@@ -18,7 +18,7 @@ provider error. Together AI sits first because it's a metered paid tier
 with no free-tier rate-limit games (unlike Groq/Gemini free tiers, which
 throttle unpredictably under demand). Anthropic sits last because it's the
 most expensive per call; it only gets used when everything else is down.
-Recruiter-facing demos should never see a raw API failure.
+The public demo should never surface a raw API failure to a visitor.
 """
 
 from __future__ import annotations
@@ -308,7 +308,7 @@ def _cache_key(
 
     Demo journeys use hardcoded per-step prompts, so identical inputs
     (same step, same resolved context) hash to the same key across every
-    recruiter session.
+    demo session.
     """
     payload = json.dumps(
         {
