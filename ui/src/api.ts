@@ -1,4 +1,4 @@
-import { GhostwriteRequest, GhostwriteResponse, HealthResponse, RunRequest, RunResponse, SpecDetail, SpecSummary, StepEvent } from './types'
+import { ExecutionSummary, GhostwriteRequest, GhostwriteResponse, HealthResponse, RunRequest, RunResponse, SpecDetail, SpecSummary, StepEvent } from './types'
 
 // Local dev proxies /api -> localhost:8000 (see vite.config.ts). Anywhere else
 // (the GitHub Pages demo at anjesh.ai/FlowStrix/) talks to the deployed Modal
@@ -64,6 +64,16 @@ export async function resumeHandoff(
     method: 'POST',
     body: JSON.stringify({ form_data: formData }),
   })
+}
+
+// --- Execution History ---
+
+export async function listExecutions(): Promise<ExecutionSummary[]> {
+  return fetchJSON(`${BASE}/executions`)
+}
+
+export async function getExecution(executionId: string): Promise<RunResponse> {
+  return fetchJSON(`${BASE}/executions/${executionId}`)
 }
 
 // --- Specs Management ---

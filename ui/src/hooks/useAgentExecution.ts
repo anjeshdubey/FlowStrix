@@ -161,7 +161,7 @@ export function useAgentExecution() {
 
 export type AgentExecution = ReturnType<typeof useAgentExecution>
 
-function mapStatus(status?: string): StepState['status'] {
+export function mapStatus(status?: string): StepState['status'] {
   switch (status) {
     case 'completed': return 'completed'
     case 'failed': return 'failed'

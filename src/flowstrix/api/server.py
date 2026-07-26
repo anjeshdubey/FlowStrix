@@ -73,7 +73,7 @@ sessions = SessionManager()
 _gateway_config: Optional[GatewayConfig] = None
 
 # Project root — for resolving relative spec paths
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 # --- LangGraph Executor Cache ---
 # Persistent executor instances per spec path. Keeps thread state alive across
