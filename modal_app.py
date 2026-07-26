@@ -81,10 +81,6 @@ image = (
             ".env",  # keys arrive via the Modal secret, never the file
         ],
     )
-    # list_specs() globs <_PROJECT_ROOT>/examples, and _PROJECT_ROOT resolves to
-    # src/ under the src-layout — make the repo-root examples/ discoverable there
-    # without editing application code.
-    .run_commands(f"ln -s {REPO_ROOT}/examples {REPO_ROOT}/src/examples")
     # Bake the bge-small embedding model into the image so the first
     # knowledge-backed run doesn't pay a cold model download inside the request.
     .run_commands(

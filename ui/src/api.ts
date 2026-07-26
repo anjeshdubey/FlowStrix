@@ -1,12 +1,16 @@
-import { GhostwriteRequest, GhostwriteResponse, HealthResponse, RunRequest, RunResponse, SpecDetail, SpecSummary, StepEvent } from './types'
+import { ExecutionSummary, GhostwriteRequest, GhostwriteResponse, HealthResponse, RunRequest, RunResponse, SpecDetail, SpecSummary, StepEvent } from './types'
 
 // Local dev proxies /api -> localhost:8000 (see vite.config.ts). Anywhere else
-// (the GitHub Pages demo at anjesh.ai/FlowStrix/) talks to the deployed Modal
-// backend cross-origin — the FastAPI app sends permissive CORS.
+// (the GitHub Pages demo at anjesh.ai/FlowStrix/, and for now the dark-launch
+// build at .../FlowStrix/next/ too) talks to the deployed Modal backend
+// cross-origin — the FastAPI app sends permissive CORS. VITE_API_BASE lets a
+// build point at a different backend without a code change, for whenever the
+// two UIs need to stop sharing one.
 const isLocal =
   typeof location !== 'undefined' &&
   (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-const BASE = isLocal ? '/api' : 'https://anjeshdubey--flowstrix-demo-web.modal.run/api'
+const REMOTE_API_BASE = import.meta.env.VITE_API_BASE || 'https://anjeshdubey--flowstrix-demo-web.modal.run/api'
+const BASE = isLocal ? '/api' : REMOTE_API_BASE
 
 async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -64,6 +68,16 @@ export async function resumeHandoff(
     method: 'POST',
     body: JSON.stringify({ form_data: formData }),
   })
+}
+
+// --- Execution History ---
+
+export async function listExecutions(): Promise<ExecutionSummary[]> {
+  return fetchJSON(`${BASE}/executions`)
+}
+
+export async function getExecution(executionId: string): Promise<RunResponse> {
+  return fetchJSON(`${BASE}/executions/${executionId}`)
 }
 
 // --- Specs Management ---

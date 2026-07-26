@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Check, TriangleAlert, X } from 'lucide-react'
 import { HITLInfo } from '../types'
 
 interface HITLPanelProps {
@@ -11,38 +12,36 @@ export default function HITLPanel({ hitlInfo, onDecision, loading }: HITLPanelPr
   const [notes, setNotes] = useState('')
 
   return (
-    <div className="border-2 border-amber-300 bg-amber-50 rounded-lg p-5 animate-slide-in">
+    <div className="border-2 border-warning/40 bg-warning/10 rounded-lg p-5 animate-slide-in">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-          <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-          </svg>
+        <div className="w-10 h-10 bg-warning/20 rounded-full flex items-center justify-center flex-shrink-0">
+          <TriangleAlert className="w-5 h-5 text-warning" />
         </div>
 
         <div className="flex-1">
-          <h3 className="font-semibold text-amber-900 text-lg">Human Decision Required</h3>
-          <p className="text-sm text-amber-700 mt-1">
+          <h3 className="font-semibold text-warning text-lg">Human Decision Required</h3>
+          <p className="text-sm text-warning/80 mt-1">
             Execution paused — this step requires human approval before proceeding.
           </p>
 
           {/* Escalation details */}
-          <div className="mt-3 bg-white rounded-md border border-amber-200 p-3 space-y-2">
+          <div className="mt-3 bg-surface-1 rounded-md border border-warning/30 p-3 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Step:</span>
-              <span className="font-medium text-gray-900">{hitlInfo.step_name}</span>
+              <span className="text-muted">Step:</span>
+              <span className="font-medium text-primary">{hitlInfo.step_name}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Escalation:</span>
-              <span className="font-medium text-gray-900">{hitlInfo.escalation_type}</span>
+              <span className="text-muted">Escalation:</span>
+              <span className="font-medium text-primary">{hitlInfo.escalation_type}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Escalate to:</span>
-              <span className="font-medium text-gray-900">{hitlInfo.escalate_to}</span>
+              <span className="text-muted">Escalate to:</span>
+              <span className="font-medium text-primary">{hitlInfo.escalate_to}</span>
             </div>
             {Object.keys(hitlInfo.context).length > 0 && (
-              <div className="pt-2 border-t border-amber-100">
-                <span className="text-xs text-gray-500 block mb-1">Context:</span>
-                <pre className="text-xs font-mono bg-gray-50 rounded p-2 overflow-x-auto">
+              <div className="pt-2 border-t border-warning/20">
+                <span className="text-xs text-muted block mb-1">Context:</span>
+                <pre className="text-xs font-mono bg-surface-2 rounded p-2 overflow-x-auto">
                   {JSON.stringify(hitlInfo.context, null, 2)}
                 </pre>
               </div>
@@ -51,13 +50,13 @@ export default function HITLPanel({ hitlInfo, onDecision, loading }: HITLPanelPr
 
           {/* Notes input */}
           <div className="mt-3">
-            <label className="block text-sm font-medium text-amber-800 mb-1">Notes (optional)</label>
+            <label className="block text-sm font-medium text-warning mb-1">Notes (optional)</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Reason for decision..."
               rows={2}
-              className="w-full px-3 py-2 border border-amber-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+              className="w-full px-3 py-2 bg-surface-1 border border-warning/30 rounded-md text-sm text-primary focus:outline-none focus:ring-2 focus:ring-warning resize-none"
             />
           </div>
 
@@ -66,21 +65,17 @@ export default function HITLPanel({ hitlInfo, onDecision, loading }: HITLPanelPr
             <button
               onClick={() => onDecision(true, notes || undefined)}
               disabled={loading}
-              className="flex-1 py-2 bg-green-600 text-white rounded-md font-medium hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+              className="flex-1 py-2 bg-success text-surface-0 rounded-md font-medium hover:brightness-110 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              <Check className="w-4 h-4" />
               Approve
             </button>
             <button
               onClick={() => onDecision(false, notes || undefined)}
               disabled={loading}
-              className="flex-1 py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+              className="flex-1 py-2 bg-danger text-surface-0 rounded-md font-medium hover:brightness-110 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-4 h-4" />
               Reject
             </button>
           </div>

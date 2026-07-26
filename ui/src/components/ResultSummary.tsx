@@ -16,15 +16,15 @@ export default function ResultSummary({ result }: ResultSummaryProps) {
             {statusConfig.label}
           </span>
         </div>
-        <div className="flex items-center gap-3 text-sm text-gray-500">
+        <div className="flex items-center gap-3 text-sm text-muted">
           <span>{result.traces.length} steps</span>
           <span>{result.execution_time_ms.toFixed(0)}ms</span>
         </div>
       </div>
 
       {/* Execution ID */}
-      <div className="mt-2 text-xs text-gray-400">
-        ID: <code className="bg-white/50 px-1 rounded">{result.execution_id}</code>
+      <div className="mt-2 text-xs text-muted">
+        ID: <code className="bg-surface-0/40 px-1 rounded">{result.execution_id}</code>
       </div>
     </div>
   )
@@ -36,33 +36,33 @@ function getStatusConfig(status: string) {
       return {
         icon: '✅',
         label: 'Journey Completed',
-        border: 'border-green-300',
-        bg: 'bg-green-50',
-        text: 'text-green-700',
+        border: 'border-success/40',
+        bg: 'bg-success/10',
+        text: 'text-success',
       }
     case 'waiting_hitl':
       return {
         icon: '⏸️',
         label: 'Waiting for Human',
-        border: 'border-amber-300',
-        bg: 'bg-amber-50',
-        text: 'text-amber-700',
+        border: 'border-warning/40',
+        bg: 'bg-warning/10',
+        text: 'text-warning',
       }
     case 'failed':
       return {
         icon: '❌',
         label: 'Execution Failed',
-        border: 'border-red-300',
-        bg: 'bg-red-50',
-        text: 'text-red-700',
+        border: 'border-danger/40',
+        bg: 'bg-danger/10',
+        text: 'text-danger',
       }
     default:
       return {
         icon: '⚙️',
         label: status,
-        border: 'border-gray-300',
-        bg: 'bg-gray-50',
-        text: 'text-gray-700',
+        border: 'border-border',
+        bg: 'bg-surface-1',
+        text: 'text-secondary',
       }
   }
 }

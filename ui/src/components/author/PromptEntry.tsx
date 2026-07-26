@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { FileText, Loader2, Sparkles, TriangleAlert, Upload, X } from 'lucide-react'
 import { uploadFile } from '../../api'
 
 interface PromptEntryProps {
@@ -88,10 +89,10 @@ export default function PromptEntry({ onGenerate, loading }: PromptEntryProps) {
   return (
     <div className="flex flex-col items-center">
       {/* Hero */}
-      <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center">
+      <h1 className="text-3xl font-bold text-primary mb-2 text-center">
         Describe your agent journey
       </h1>
-      <p className="text-gray-500 mb-8 text-center">
+      <p className="text-secondary mb-8 text-center">
         Tell us what your agent should do — or upload a file with the workflow description
       </p>
 
@@ -104,20 +105,20 @@ export default function PromptEntry({ onGenerate, loading }: PromptEntryProps) {
               setPrompt(qs.prompt)
               setUploadedFile(null)
             }}
-            className="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg hover:border-forge-400 hover:bg-forge-50 transition-all flex items-center gap-1.5"
+            className="px-3 py-1.5 text-sm bg-surface-1 border border-border-subtle rounded-lg hover:border-accent hover:bg-accent/10 transition-all flex items-center gap-1.5"
           >
             <span>{qs.emoji}</span>
-            <span className="text-gray-700">{qs.label}</span>
+            <span className="text-secondary">{qs.label}</span>
           </button>
         ))}
       </div>
 
       {/* Prompt input with drop zone */}
       <div
-        className={`w-full max-w-2xl bg-white border-2 rounded-xl p-4 transition-all ${
+        className={`w-full max-w-2xl bg-surface-1 border-2 rounded-xl p-4 transition-all ${
           dragOver
-            ? 'border-forge-500 bg-forge-50 ring-2 ring-forge-100'
-            : 'border-gray-200 focus-within:border-forge-500 focus-within:ring-2 focus-within:ring-forge-100'
+            ? 'border-accent bg-accent/10 ring-2 ring-accent/20'
+            : 'border-border-subtle focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20'
         }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -131,7 +132,7 @@ export default function PromptEntry({ onGenerate, loading }: PromptEntryProps) {
           }}
           placeholder={PLACEHOLDERS[placeholderIdx]}
           rows={4}
-          className="w-full text-sm text-gray-800 placeholder-gray-400 bg-transparent resize-none border-none focus:ring-0 outline-none leading-relaxed"
+          className="w-full text-sm text-primary placeholder:text-muted bg-transparent resize-none border-none focus:ring-0 outline-none leading-relaxed"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && e.metaKey) handleSubmit()
           }}
@@ -139,31 +140,25 @@ export default function PromptEntry({ onGenerate, loading }: PromptEntryProps) {
 
         {/* Upload status */}
         {uploadedFile && (
-          <div className="flex items-center gap-2 mt-2 px-2 py-1.5 bg-forge-50 border border-forge-200 rounded-md">
-            <svg className="w-4 h-4 text-forge-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <span className="text-xs text-forge-700 font-medium truncate">{uploadedFile}</span>
+          <div className="flex items-center gap-2 mt-2 px-2 py-1.5 bg-accent/10 border border-accent/30 rounded-md">
+            <FileText className="w-4 h-4 text-accent flex-shrink-0" />
+            <span className="text-xs text-accent font-medium truncate">{uploadedFile}</span>
             <button
               onClick={() => {
                 setUploadedFile(null)
                 setPrompt('')
               }}
-              className="ml-auto text-gray-400 hover:text-gray-600"
+              className="ml-auto text-muted hover:text-secondary"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
 
         {/* Upload error */}
         {uploadError && (
-          <div className="mt-2 text-xs text-amber-600 flex items-center gap-1">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
+          <div className="mt-2 text-xs text-warning flex items-center gap-1">
+            <TriangleAlert className="w-3.5 h-3.5" />
             {uploadError}
           </div>
         )}
@@ -171,13 +166,13 @@ export default function PromptEntry({ onGenerate, loading }: PromptEntryProps) {
         {/* Drag overlay message */}
         {dragOver && (
           <div className="mt-2 text-center py-3">
-            <p className="text-sm text-forge-600 font-medium">Drop file here to upload</p>
+            <p className="text-sm text-accent font-medium">Drop file here to upload</p>
           </div>
         )}
 
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-subtle">
           <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-muted">
               {prompt.length > 0 ? `${prompt.length} chars` : '⌘+Enter to generate'}
             </span>
 
@@ -185,18 +180,13 @@ export default function PromptEntry({ onGenerate, loading }: PromptEntryProps) {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading || loading}
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-forge-600 transition-colors disabled:opacity-40"
+              className="flex items-center gap-1 text-xs text-muted hover:text-accent transition-colors disabled:opacity-40"
               title="Upload a file (.txt, .md, .docx, .pdf, .yaml)"
             >
               {uploading ? (
-                <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+                <Loader2 className="animate-spin w-3.5 h-3.5" />
               ) : (
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
+                <Upload className="w-3.5 h-3.5" />
               )}
               <span>{uploading ? 'Reading...' : 'Upload file'}</span>
             </button>
@@ -213,21 +203,16 @@ export default function PromptEntry({ onGenerate, loading }: PromptEntryProps) {
           <button
             onClick={handleSubmit}
             disabled={!prompt.trim() || loading}
-            className="px-5 py-2 rounded-lg bg-forge-600 text-white font-medium text-sm hover:bg-forge-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-5 py-2 rounded-lg bg-accent text-surface-0 font-medium text-sm hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {loading ? (
               <>
-                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+                <Loader2 className="animate-spin w-4 h-4" />
                 Generating...
               </>
             ) : (
               <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+                <Sparkles className="w-4 h-4" />
                 Generate Journey
               </>
             )}
@@ -236,7 +221,7 @@ export default function PromptEntry({ onGenerate, loading }: PromptEntryProps) {
       </div>
 
       {/* Supported formats hint */}
-      <p className="mt-3 text-xs text-gray-400 text-center">
+      <p className="mt-3 text-xs text-muted text-center">
         Drag & drop or upload: .txt, .md, .docx, .pdf, .yaml, .json
       </p>
     </div>

@@ -56,6 +56,14 @@ export interface RunResponse {
   thread_id?: string
 }
 
+export interface ExecutionSummary {
+  id: string
+  spec_path: string
+  journey_name: string
+  status: string
+  created_at: number
+}
+
 export interface StepEvent {
   event: string
   step_name?: string
@@ -113,6 +121,7 @@ export interface HealthResponse {
   status: string
   version: string
   model?: string
+  provider?: string
   gateway_configured: boolean
 }
 

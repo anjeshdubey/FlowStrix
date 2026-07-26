@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Redirecting…</title>
+    <script>
+      // GitHub Pages serves exactly one 404.html for the whole Pages site
+      // (this file, at the docs/ root) — there's no per-directory 404 and
+      // no server-side rewrites. Two client-routed SPAs share this site
+      // (the live app at /FlowStrix/, a dark-launch build at
+      // /FlowStrix/next/), so a hard refresh on a deep link under either
+      // prefix lands here. Encode the real path into a query string and
+      // redirect to that app's own index.html; its decode script (see
+      // ui/index.html) turns the query string back into the real path via
+      // history.replaceState before the router reads the URL.
+      // Hand-maintained — not build output. Do not overwrite by copying a
+      // build's dist/index.html or dist/404.html over this file.
+      (function (l) {
+        var segments = l.pathname.split('/').slice(1) // drop leading ''
+        var isNext = segments[0] === 'FlowStrix' && segments[1] === 'next'
+        var keep = isNext ? 2 : 1
+        var base = segments.slice(0, keep)
+        var rest = segments.slice(keep)
+
+        var redirectQuery =
+          '/' + rest.join('/').replace(/&/g, '~and~') +
+          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '')
+
+        l.replace(
+          l.protocol + '//' + l.host + '/' + base.join('/') + '/?' + redirectQuery + l.hash
+        )
+      })(window.location)
+    </script>
+  </head>
+  <body></body>
+</html>
