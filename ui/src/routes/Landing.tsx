@@ -5,6 +5,18 @@ import { listSpecs, SavedSpec, getSpec } from '../api'
 import { useHealth } from '../context/HealthContext'
 import DagHero from '../components/landing/DagHero'
 
+const PROVIDER_LABELS: Record<string, string> = {
+  together: 'Together',
+  groq: 'Groq',
+  gemini: 'Gemini',
+  anthropic: 'Anthropic',
+}
+
+function providerLabel(provider?: string) {
+  if (!provider) return 'Gateway'
+  return PROVIDER_LABELS[provider] ?? provider
+}
+
 export default function Landing() {
   const navigate = useNavigate()
   const health = useHealth()
@@ -51,7 +63,7 @@ export default function Landing() {
           <span className="font-mono text-1 text-secondary">
             {health?.gateway_configured
               ? health.model
-                ? `Together · ${health.model}`
+                ? `${providerLabel(health.provider)} · ${health.model}`
                 : 'Gateway Connected'
               : health
               ? 'No Gateway'
@@ -78,13 +90,10 @@ export default function Landing() {
               Run the refund demo →
             </button>
             <button
-              onClick={() => {
-                const first = specs[0]
-                navigate(first ? `/agents/${encodeURIComponent(first.path)}/journeys` : '/agents')
-              }}
+              onClick={() => navigate('/agents')}
               className="px-2 py-3.5 bg-transparent text-secondary font-medium text-3 hover:text-primary"
             >
-              Take the tour
+              Browse agents
             </button>
           </div>
         </div>
@@ -95,7 +104,7 @@ export default function Landing() {
       </div>
 
       <div className="h-[52px] flex-none border-t border-border-subtle flex items-center justify-center gap-6">
-        <a href="/FlowStrix/engineering/" className="text-1 text-muted hover:text-secondary no-underline">
+        <a href={`${import.meta.env.BASE_URL}engineering/`} className="text-1 text-muted hover:text-secondary no-underline">
           Architecture
         </a>
         <span className="text-border-strong text-1">·</span>

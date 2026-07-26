@@ -8,7 +8,6 @@ import HITLPanel from '../components/HITLPanel'
 import JourneyRunner from '../components/JourneyRunner'
 import MessageThread from '../components/MessageThread'
 import ResultSummary from '../components/ResultSummary'
-import SpecLoader from '../components/SpecLoader'
 import StepTimeline from '../components/StepTimeline'
 import { AgentWorkspaceContext } from './AgentWorkspace'
 
@@ -33,20 +32,18 @@ export default function JourneysPage() {
     handleReset,
   } = execution
 
-  // A CTA (e.g. the landing page's demo link) can deep-link straight into a
-  // preloaded spec so the run form arrives prefilled instead of empty.
+  // The rail already knows which agent is selected — load its spec
+  // automatically instead of asking the user to pick one again.
   useEffect(() => {
-    if (!agentPath || spec || !searchParams.get('demo')) return
+    if (!agentPath || specPath === agentPath) return
     getSpec(agentPath)
       .then((loaded) => handleSpecLoaded(loaded, agentPath))
       .catch(() => {})
-  }, [agentPath, spec, searchParams, handleSpecLoaded])
+  }, [agentPath, specPath, handleSpecLoaded])
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       <div className="lg:col-span-5 space-y-6">
-        <SpecLoader onSpecLoaded={handleSpecLoaded} />
-
         {spec && (
           <JourneyRunner
             spec={spec}

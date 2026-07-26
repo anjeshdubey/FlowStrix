@@ -30,14 +30,14 @@ const STEP_ICONS: Record<string, string> = {
   wait: '⏳',
 }
 
-const STEP_COLORS: Record<string, { border: string; bg: string; ring: string }> = {
-  lookup: { border: 'border-blue-300', bg: 'bg-blue-50', ring: 'ring-blue-200' },
-  reason: { border: 'border-purple-300', bg: 'bg-purple-50', ring: 'ring-purple-200' },
-  respond: { border: 'border-green-300', bg: 'bg-green-50', ring: 'ring-green-200' },
-  branch: { border: 'border-amber-300', bg: 'bg-amber-50', ring: 'ring-amber-200' },
-  hitl: { border: 'border-red-300', bg: 'bg-red-50', ring: 'ring-red-200' },
-  tool: { border: 'border-cyan-300', bg: 'bg-cyan-50', ring: 'ring-cyan-200' },
-  wait: { border: 'border-gray-300', bg: 'bg-gray-50', ring: 'ring-gray-200' },
+const STEP_COLORS: Record<string, { border: string; bg: string; ring: string; text: string }> = {
+  lookup: { border: 'border-info/40', bg: 'bg-info/10', ring: 'ring-info/30', text: 'text-info' },
+  reason: { border: 'border-accent/40', bg: 'bg-accent/10', ring: 'ring-accent/30', text: 'text-accent' },
+  respond: { border: 'border-success/40', bg: 'bg-success/10', ring: 'ring-success/30', text: 'text-success' },
+  branch: { border: 'border-warning/40', bg: 'bg-warning/10', ring: 'ring-warning/30', text: 'text-warning' },
+  hitl: { border: 'border-danger/40', bg: 'bg-danger/10', ring: 'ring-danger/30', text: 'text-danger' },
+  tool: { border: 'border-info/40', bg: 'bg-info/10', ring: 'ring-info/30', text: 'text-info' },
+  wait: { border: 'border-border', bg: 'bg-surface-2', ring: 'ring-border', text: 'text-muted' },
 }
 
 export default function FlowCanvas({ steps, agentName, personaName, onStepClick, selectedStep, showFullDescription = false }: FlowCanvasProps) {
@@ -45,41 +45,41 @@ export default function FlowCanvas({ steps, agentName, personaName, onStepClick,
     <div className="flex flex-col items-center py-8 px-4">
       {/* Agent header */}
       <div className="mb-6 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-forge-50 border border-forge-200 rounded-full text-sm">
-          <span className="w-2 h-2 bg-forge-500 rounded-full" />
-          <span className="font-medium text-forge-700">{agentName}</span>
-          <span className="text-forge-400">•</span>
-          <span className="text-forge-500">{personaName}</span>
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/10 border border-accent/30 rounded-full text-sm">
+          <span className="w-2 h-2 bg-accent rounded-full" />
+          <span className="font-medium text-accent">{agentName}</span>
+          <span className="text-accent/50">•</span>
+          <span className="text-accent/80">{personaName}</span>
         </div>
       </div>
 
       {/* Start node */}
-      <div className="w-12 h-12 rounded-full bg-forge-600 flex items-center justify-center shadow-lg mb-2">
-        <Play className="w-5 h-5 text-white" fill="currentColor" />
+      <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center shadow-glow-accent mb-2">
+        <Play className="w-5 h-5 text-surface-0" fill="currentColor" />
       </div>
 
       {/* Steps */}
       {steps.map((step, index) => (
         <div key={`${step.name}-${index}`} className="flex flex-col items-center">
           {/* Connector */}
-          <div className="w-0.5 h-8 bg-gray-300 relative">
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0 border-t-[6px] border-t-gray-300 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent" />
+          <div className="w-0.5 h-8 bg-border relative">
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0 border-t-[6px] border-t-border border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent" />
           </div>
 
           {/* Step node */}
           <button
             onClick={() => onStepClick(step, index)}
-            className={`group relative ${showFullDescription ? 'w-80' : 'w-64'} p-4 rounded-xl border-2 transition-all hover:scale-[1.02] hover:shadow-lg ${
+            className={`group relative ${showFullDescription ? 'w-80' : 'w-64'} p-4 rounded-xl border-2 transition-all hover:scale-[1.02] hover:shadow-2 ${
               selectedStep === index
-                ? `${STEP_COLORS[step.type]?.border || 'border-gray-300'} ${STEP_COLORS[step.type]?.bg || 'bg-gray-50'} ring-2 ${STEP_COLORS[step.type]?.ring || 'ring-gray-200'} shadow-md`
-                : 'border-gray-200 bg-white hover:border-gray-300'
+                ? `${STEP_COLORS[step.type]?.border || 'border-border'} ${STEP_COLORS[step.type]?.bg || 'bg-surface-2'} ring-2 ${STEP_COLORS[step.type]?.ring || 'ring-border'} shadow-2`
+                : 'border-border-subtle bg-surface-1 hover:border-border'
             }`}
           >
             {/* Step type badge */}
             <div className="absolute -top-2.5 left-4">
               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${
-                STEP_COLORS[step.type]?.bg || 'bg-gray-100'
-              } border ${STEP_COLORS[step.type]?.border || 'border-gray-200'}`}>
+                STEP_COLORS[step.type]?.bg || 'bg-surface-2'
+              } ${STEP_COLORS[step.type]?.text || 'text-secondary'} border ${STEP_COLORS[step.type]?.border || 'border-border-subtle'}`}>
                 <span>{STEP_ICONS[step.type] || '⚙️'}</span>
                 {step.type}
               </span>
@@ -87,17 +87,17 @@ export default function FlowCanvas({ steps, agentName, personaName, onStepClick,
 
             {/* Step content */}
             <div className="mt-1">
-              <h4 className="font-semibold text-sm text-gray-900">{step.name}</h4>
-              <p className={`text-xs text-gray-500 mt-1 ${showFullDescription ? '' : 'line-clamp-2'}`}>{step.description}</p>
+              <h4 className="font-semibold text-sm text-primary">{step.name}</h4>
+              <p className={`text-xs text-secondary mt-1 ${showFullDescription ? '' : 'line-clamp-2'}`}>{step.description}</p>
             </div>
 
             {/* Branch indicators */}
             {step.type === 'branch' && (
               <div className="flex gap-2 mt-2">
-                <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] bg-success/10 text-success px-1.5 py-0.5 rounded">
                   ✓ {step.if_true}
                 </span>
-                <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] bg-danger/10 text-danger px-1.5 py-0.5 rounded">
                   ✗ {step.if_false}
                 </span>
               </div>
@@ -106,7 +106,7 @@ export default function FlowCanvas({ steps, agentName, personaName, onStepClick,
             {/* HITL indicator */}
             {step.type === 'hitl' && step.escalate_to && (
               <div className="mt-2">
-                <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] bg-danger/10 text-danger px-1.5 py-0.5 rounded">
                   → {step.escalate_to}
                 </span>
               </div>
@@ -116,11 +116,11 @@ export default function FlowCanvas({ steps, agentName, personaName, onStepClick,
       ))}
 
       {/* End node */}
-      <div className="w-0.5 h-8 bg-gray-300 relative">
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0 border-t-[6px] border-t-gray-300 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent" />
+      <div className="w-0.5 h-8 bg-border relative">
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0 border-t-[6px] border-t-border border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent" />
       </div>
-      <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center shadow-lg">
-        <CheckCircle2 className="w-5 h-5 text-white" />
+      <div className="w-12 h-12 rounded-full bg-surface-2 flex items-center justify-center shadow-2">
+        <CheckCircle2 className="w-5 h-5 text-primary" />
       </div>
     </div>
   )

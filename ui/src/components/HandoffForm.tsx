@@ -64,8 +64,8 @@ export default function HandoffForm({ handoffInfo, onSubmit, loading }: HandoffF
     const value = formData[field.id]
     const error = errors[field.id]
 
-    const baseInputClass = `w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-      error ? 'border-red-300 bg-red-50' : 'border-gray-300'
+    const baseInputClass = `w-full px-3 py-2 bg-surface-2 border rounded-md text-sm text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent ${
+      error ? 'border-danger bg-danger/10' : 'border-border'
     }`
 
     switch (field.field_type) {
@@ -104,8 +104,8 @@ export default function HandoffForm({ handoffInfo, onSubmit, loading }: HandoffF
                   key={opt}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-md border cursor-pointer transition-colors ${
                     selected
-                      ? 'border-indigo-300 bg-indigo-50 text-indigo-800'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-accent bg-accent/10 text-accent'
+                      : 'border-border-subtle hover:border-border text-secondary'
                   }`}
                 >
                   <input
@@ -119,7 +119,7 @@ export default function HandoffForm({ handoffInfo, onSubmit, loading }: HandoffF
                         handleChange(field.id, current.filter((v) => v !== opt))
                       }
                     }}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-border bg-surface-2 text-accent focus:ring-accent"
                   />
                   <span className="text-sm">{opt}</span>
                 </label>
@@ -135,9 +135,9 @@ export default function HandoffForm({ handoffInfo, onSubmit, loading }: HandoffF
               type="checkbox"
               checked={Boolean(value)}
               onChange={(e) => handleChange(field.id, e.target.checked)}
-              className="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="mt-0.5 rounded border-border bg-surface-2 text-accent focus:ring-accent"
             />
-            <span className="text-sm text-gray-700">{field.label}</span>
+            <span className="text-sm text-secondary">{field.label}</span>
           </label>
         )
 
@@ -155,31 +155,31 @@ export default function HandoffForm({ handoffInfo, onSubmit, loading }: HandoffF
   }
 
   return (
-    <div className="border-2 border-indigo-300 bg-indigo-50 rounded-lg p-5 animate-slide-in">
+    <div className="border-2 border-accent/40 bg-accent/10 rounded-lg p-5 animate-slide-in">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-          <ClipboardList className="w-5 h-5 text-indigo-600" />
+        <div className="w-10 h-10 bg-accent/20 rounded-full flex items-center justify-center flex-shrink-0">
+          <ClipboardList className="w-5 h-5 text-accent" />
         </div>
 
         <div className="flex-1">
-          <h3 className="font-semibold text-indigo-900 text-lg">Structured Input Required</h3>
-          <p className="text-sm text-indigo-700 mt-1">
+          <h3 className="font-semibold text-accent text-lg">Structured Input Required</h3>
+          <p className="text-sm text-accent/80 mt-1">
             {handoffInfo.transition_message}
           </p>
 
           {/* Form Fields */}
-          <div className="mt-4 space-y-4 bg-white rounded-md border border-indigo-200 p-4">
+          <div className="mt-4 space-y-4 bg-surface-1 rounded-md border border-accent/30 p-4">
             {handoffInfo.fields.map((field) => (
               <div key={field.id}>
                 {field.field_type !== 'checkbox' && (
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-secondary mb-1">
                     {field.label}
-                    {field.required && <span className="text-red-500 ml-0.5">*</span>}
+                    {field.required && <span className="text-danger ml-0.5">*</span>}
                   </label>
                 )}
                 {renderField(field)}
                 {errors[field.id] && (
-                  <p className="mt-1 text-xs text-red-600">{errors[field.id]}</p>
+                  <p className="mt-1 text-xs text-danger">{errors[field.id]}</p>
                 )}
               </div>
             ))}
@@ -189,7 +189,7 @@ export default function HandoffForm({ handoffInfo, onSubmit, loading }: HandoffF
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="mt-4 w-full py-2.5 bg-indigo-600 text-white rounded-md font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="mt-4 w-full py-2.5 bg-accent text-surface-0 rounded-md font-medium hover:brightness-110 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>

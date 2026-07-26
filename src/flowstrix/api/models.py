@@ -10,7 +10,6 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-
 # --- Request Models ---
 
 
@@ -20,10 +19,18 @@ class RunRequest(BaseModel):
     spec_path: str = Field(description="Path to agent YAML spec file")
     journey: str = Field(description="Journey name to execute")
     message: Optional[str] = Field(default=None, description="Initial user message")
-    context: dict[str, Any] = Field(default_factory=dict, description="Initial context data")
-    model: Optional[str] = Field(default=None, description="Model override (e.g. claude-haiku)")
-    engine: Optional[str] = Field(default=None, description="Engine: 'legacy' or 'langgraph'")
-    thread_id: Optional[str] = Field(default=None, description="Thread ID for multi-turn conversations")
+    context: dict[str, Any] = Field(
+        default_factory=dict, description="Initial context data"
+    )
+    model: Optional[str] = Field(
+        default=None, description="Model override (e.g. claude-haiku)"
+    )
+    engine: Optional[str] = Field(
+        default=None, description="Engine: 'legacy' or 'langgraph'"
+    )
+    thread_id: Optional[str] = Field(
+        default=None, description="Thread ID for multi-turn conversations"
+    )
     interaction_mode: Optional[str] = Field(
         default=None,
         description="Interaction mode: 'conversational' | 'agent_driven' | 'structured'. Affects handoff step behavior.",
@@ -40,7 +47,9 @@ class HITLResumeRequest(BaseModel):
 class HandoffResumeRequest(BaseModel):
     """Request to resume execution after handoff form submission."""
 
-    form_data: dict[str, Any] = Field(description="Submitted form field values (field_id → value)")
+    form_data: dict[str, Any] = Field(
+        description="Submitted form field values (field_id → value)"
+    )
 
 
 # --- Response Models ---
@@ -156,6 +165,7 @@ class HealthResponse(BaseModel):
     status: str = "ok"
     version: str = "0.1.0"
     model: Optional[str] = None
+    provider: Optional[str] = None
     gateway_configured: bool = False
 
 
@@ -165,11 +175,21 @@ class HealthResponse(BaseModel):
 class GhostwriteRequest(BaseModel):
     """Request to generate an agent spec from natural language."""
 
-    description: str = Field(description="Natural language description of desired agent behavior")
-    agent_name: Optional[str] = Field(default=None, description="Desired agent identifier")
-    persona_name: Optional[str] = Field(default=None, description="Agent persona display name")
-    tools_available: list[str] = Field(default_factory=list, description="Available tool names")
-    knowledge_docs: list[str] = Field(default_factory=list, description="Knowledge document paths")
+    description: str = Field(
+        description="Natural language description of desired agent behavior"
+    )
+    agent_name: Optional[str] = Field(
+        default=None, description="Desired agent identifier"
+    )
+    persona_name: Optional[str] = Field(
+        default=None, description="Agent persona display name"
+    )
+    tools_available: list[str] = Field(
+        default_factory=list, description="Available tool names"
+    )
+    knowledge_docs: list[str] = Field(
+        default_factory=list, description="Knowledge document paths"
+    )
 
 
 class GhostwriteStepResponse(BaseModel):

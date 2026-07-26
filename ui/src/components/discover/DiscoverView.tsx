@@ -129,13 +129,13 @@ export default function DiscoverView() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Discover Workflows</h1>
-          <p className="text-gray-500">Browse and inspect your saved agent workflows</p>
+          <h1 className="text-2xl font-bold text-primary mb-1">Discover Workflows</h1>
+          <p className="text-secondary">Browse and inspect your saved agent workflows</p>
         </div>
 
         {/* Loading */}
         {loading && (
-          <div className="flex items-center justify-center h-48 text-gray-400">
+          <div className="flex items-center justify-center h-48 text-muted">
             <div className="flex items-center gap-2">
               <Loader2 className="animate-spin w-5 h-5" />
               Loading workflows...
@@ -145,8 +145,8 @@ export default function DiscoverView() {
 
         {/* Empty state */}
         {!loading && specs.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-48 text-gray-400">
-            <Layers className="w-12 h-12 mb-3 text-gray-300" strokeWidth={1.5} />
+          <div className="flex flex-col items-center justify-center h-48 text-muted">
+            <Layers className="w-12 h-12 mb-3 text-muted" strokeWidth={1.5} />
             <p className="text-sm">No workflows yet. Create one in Author mode!</p>
           </div>
         )}
@@ -167,7 +167,7 @@ export default function DiscoverView() {
 
         {/* Error */}
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <div className="p-3 bg-danger/10 border border-danger/30 rounded-lg text-sm text-danger">
             <strong>Error:</strong> {error}
           </div>
         )}
@@ -182,7 +182,7 @@ export default function DiscoverView() {
       <div className="flex items-center justify-between">
         <button
           onClick={handleBack}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          className="flex items-center gap-1.5 text-sm text-secondary hover:text-primary transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           All Workflows
@@ -192,15 +192,15 @@ export default function DiscoverView() {
         <div className="flex items-center gap-2">
           {activeSpec && (
             <div className="text-right mr-3">
-              <span className="text-sm font-semibold text-gray-900">{activeSpec.agent}</span>
-              <span className="text-xs text-gray-500 ml-2">{activeSpec.persona_name}</span>
+              <span className="text-sm font-semibold text-primary">{activeSpec.agent}</span>
+              <span className="text-xs text-secondary ml-2">{activeSpec.persona_name}</span>
             </div>
           )}
           <button
             onClick={handleShowYaml}
             disabled={loadingYaml}
             className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-              showYaml ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              showYaml ? 'bg-primary text-surface-0 border-primary' : 'bg-surface-1 text-secondary border-border-subtle hover:bg-surface-2'
             }`}
           >
             {loadingYaml ? 'Loading...' : showYaml ? 'Hide YAML' : 'Show YAML'}
@@ -208,7 +208,7 @@ export default function DiscoverView() {
           <button
             onClick={handleSaveSpec}
             disabled={saving || !yaml}
-            className="px-3 py-1.5 text-sm bg-forge-600 text-white rounded-lg hover:bg-forge-700 transition-colors disabled:opacity-50"
+            className="px-3 py-1.5 text-sm bg-accent text-surface-0 rounded-lg hover:brightness-110 transition-all disabled:opacity-50"
           >
             {saving ? 'Saving...' : saveMessage ? '✓ Saved' : 'Save Spec'}
           </button>
@@ -218,7 +218,7 @@ export default function DiscoverView() {
       {/* Save confirmation */}
       {saveMessage && (
         <div className={`text-xs px-3 py-1.5 rounded-md ${
-          saveMessage.startsWith('Failed') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+          saveMessage.startsWith('Failed') ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'
         }`}>
           {saveMessage}
         </div>
@@ -233,8 +233,8 @@ export default function DiscoverView() {
               onClick={() => selectJourney(j)}
               className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
                 activeJourney?.name === j.name
-                  ? 'bg-forge-600 text-white border-forge-600'
-                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                  ? 'bg-accent text-surface-0 border-accent'
+                  : 'bg-surface-1 text-secondary border-border-subtle hover:bg-surface-2'
               }`}
             >
               {j.name}
@@ -246,17 +246,17 @@ export default function DiscoverView() {
 
       {/* Journey description banner */}
       {activeJourney && (
-        <div className="flex items-start gap-3 p-3 bg-forge-50 border border-forge-200 rounded-lg">
+        <div className="flex items-start gap-3 p-3 bg-accent/10 border border-accent/30 rounded-lg">
           <div className="flex-shrink-0 mt-0.5">
-            <Info className="w-5 h-5 text-forge-600" />
+            <Info className="w-5 h-5 text-accent" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900">{activeJourney.name}</p>
-            <p className="text-xs text-gray-600 mt-0.5">{activeJourney.description}</p>
-            <p className="text-xs text-gray-400 mt-1">Trigger: {activeJourney.trigger_description}</p>
+            <p className="text-sm font-medium text-primary">{activeJourney.name}</p>
+            <p className="text-xs text-secondary mt-0.5">{activeJourney.description}</p>
+            <p className="text-xs text-muted mt-1">Trigger: {activeJourney.trigger_description}</p>
           </div>
           <div className="flex-shrink-0">
-            <span className="text-xs font-semibold text-forge-700 bg-forge-100 px-2 py-0.5 rounded-full">
+            <span className="text-xs font-semibold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
               {activeJourney.steps.length} steps
             </span>
           </div>
@@ -267,14 +267,14 @@ export default function DiscoverView() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Canvas */}
         <div className={`${selectedStep !== null || showYaml ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="bg-gray-50 border-b border-gray-200 px-4 py-2 flex items-center justify-between">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Journey Canvas</span>
-              <span className="text-xs text-gray-400">{steps.length} steps</span>
+          <div className="bg-surface-1 border border-border-subtle rounded-xl overflow-hidden">
+            <div className="bg-surface-2 border-b border-border-subtle px-4 py-2 flex items-center justify-between">
+              <span className="text-xs font-semibold text-secondary uppercase tracking-wide">Journey Canvas</span>
+              <span className="text-xs text-muted">{steps.length} steps</span>
             </div>
             <div
               className="overflow-y-auto max-h-[65vh]"
-              style={{ backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: '20px 20px' }}
+              style={{ backgroundImage: 'radial-gradient(#23262c 1px, transparent 1px)', backgroundSize: '20px 20px' }}
             >
               <FlowCanvas
                 steps={steps}
@@ -319,30 +319,30 @@ function SpecCard({ spec, onClick, loading }: SpecCardProps) {
     <button
       onClick={onClick}
       disabled={loading}
-      className="group bg-white border-2 border-gray-200 hover:border-forge-400 hover:shadow-lg rounded-2xl p-5 transition-all text-left w-full disabled:opacity-60"
+      className="group bg-surface-1 border-2 border-border-subtle hover:border-accent hover:shadow-2 rounded-2xl p-5 transition-all text-left w-full disabled:opacity-60"
     >
       {/* Icon & header */}
       <div className="flex items-start justify-between mb-3">
-        <div className="w-11 h-11 bg-forge-100 rounded-xl flex items-center justify-center group-hover:bg-forge-500 transition-colors">
-          <Workflow className="w-5 h-5 text-forge-600 group-hover:text-white" />
+        <div className="w-11 h-11 bg-accent/10 rounded-xl flex items-center justify-center group-hover:bg-accent transition-colors">
+          <Workflow className="w-5 h-5 text-accent group-hover:text-surface-0" />
         </div>
         {spec.journey_count > 0 && (
-          <span className="text-xs font-bold text-forge-600 bg-forge-50 px-2 py-0.5 rounded-full">
+          <span className="text-xs font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
             {spec.journey_count} {spec.journey_count === 1 ? 'journey' : 'journeys'}
           </span>
         )}
       </div>
 
       {/* Title */}
-      <h3 className="font-bold text-gray-900 mb-1 truncate">{spec.agent}</h3>
-      <p className="text-sm text-gray-500 mb-3 truncate">
+      <h3 className="font-bold text-primary mb-1 truncate">{spec.agent}</h3>
+      <p className="text-sm text-secondary mb-3 truncate">
         {spec.persona_name ? `Persona: ${spec.persona_name}` : spec.path}
       </p>
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-        <span className="text-xs text-gray-400 truncate">{spec.path}</span>
-        <span className="text-xs text-forge-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center justify-between pt-3 border-t border-border-subtle">
+        <span className="text-xs text-muted truncate">{spec.path}</span>
+        <span className="text-xs text-accent font-medium opacity-0 group-hover:opacity-100 transition-opacity">
           View Canvas →
         </span>
       </div>

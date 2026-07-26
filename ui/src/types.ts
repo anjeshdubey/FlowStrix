@@ -113,6 +113,7 @@ export interface HealthResponse {
   status: string
   version: string
   model?: string
+  provider?: string
   gateway_configured: boolean
 }
 

@@ -20,21 +20,21 @@ export default function YAMLPreview({ yaml }: YAMLPreviewProps) {
   }
 
   return (
-    <div className="bg-gray-900 rounded-xl overflow-hidden">
+    <div className="bg-surface-2 rounded-xl overflow-hidden border border-border-subtle">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-800">
-        <span className="text-xs font-medium text-gray-400">agent_spec.yaml</span>
+      <div className="flex items-center justify-between px-4 py-2 bg-surface-1">
+        <span className="text-xs font-medium text-muted">agent_spec.yaml</span>
         <div className="flex gap-1">
           <button
             onClick={handleCopy}
-            className="p-1.5 text-gray-400 hover:text-white transition-colors rounded"
+            className="p-1.5 text-muted hover:text-primary transition-colors rounded"
             title="Copy YAML"
           >
             <Copy className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={handleDownload}
-            className="p-1.5 text-gray-400 hover:text-white transition-colors rounded"
+            className="p-1.5 text-muted hover:text-primary transition-colors rounded"
             title="Download YAML"
           >
             <Download className="w-3.5 h-3.5" />
@@ -44,7 +44,7 @@ export default function YAMLPreview({ yaml }: YAMLPreviewProps) {
 
       {/* YAML content */}
       <div className="p-4 overflow-x-auto max-h-[500px] overflow-y-auto">
-        <pre className="text-xs text-green-400 font-mono whitespace-pre leading-relaxed">
+        <pre className="text-xs text-success font-mono whitespace-pre leading-relaxed">
           {yaml}
         </pre>
       </div>

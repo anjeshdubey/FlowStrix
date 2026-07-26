@@ -11,7 +11,6 @@ Or directly: uvicorn flowstrix.api.server:app --reload
 from __future__ import annotations
 
 import asyncio
-import json
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -24,7 +23,6 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from flowstrix.api.models import (
-    ErrorResponse,
     GhostwriteJourneyResponse,
     GhostwriteRequest,
     GhostwriteResponse,
@@ -215,20 +213,26 @@ def _register_demo_tools(tools: ToolRegistry) -> None:
                 "department": "Engineering",
             },
         }
-        return employees.get(employee_id, {
-            "employee_id": employee_id,
-            "name": "Demo Employee",
-            "role": "Software Engineer",
-            "team": "Product",
-            "manager": "Jane Doe",
-            "tenure_days": 200,
-            "department": "Engineering",
-        })
+        return employees.get(
+            employee_id,
+            {
+                "employee_id": employee_id,
+                "name": "Demo Employee",
+                "role": "Software Engineer",
+                "team": "Product",
+                "manager": "Jane Doe",
+                "tenure_days": 200,
+                "department": "Engineering",
+            },
+        )
 
     def classify_access_target(request_text: str = "") -> dict:
         """Classify the access target from the request text."""
         text_lower = request_text.lower()
-        if any(kw in text_lower for kw in ["production", "prod", "customer data", "database"]):
+        if any(
+            kw in text_lower
+            for kw in ["production", "prod", "customer data", "database"]
+        ):
             return {
                 "target_system": "production_database",
                 "category": "data_store",
@@ -286,20 +290,24 @@ def _register_demo_tools(tools: ToolRegistry) -> None:
     tools.register("provision_access", provision_access)
 
 
-def _build_run_response(session: ExecutionSession, ctx: ExecutionContext) -> RunResponse:
+def _build_run_response(
+    session: ExecutionSession, ctx: ExecutionContext
+) -> RunResponse:
     """Convert ExecutionContext to API response."""
     traces = []
     for t in ctx.traces:
         output_preview = None
         if t.output:
             output_preview = str(t.output)[:100]
-        traces.append(StepTraceResponse(
-            step_name=t.step_name,
-            step_type=t.step_type,
-            status=t.status.value,
-            duration_ms=t.duration_ms,
-            output_preview=output_preview,
-        ))
+        traces.append(
+            StepTraceResponse(
+                step_name=t.step_name,
+                step_type=t.step_type,
+                status=t.status.value,
+                duration_ms=t.duration_ms,
+                output_preview=output_preview,
+            )
+        )
 
     hitl_info = None
     if ctx.waiting_for_human and ctx.hitl_request:
@@ -354,6 +362,7 @@ async def health_check():
         return HealthResponse(
             status="ok",
             model=config.model,
+            provider=config.provider,
             gateway_configured=True,
         )
     except GatewayConfigError:
@@ -375,25 +384,30 @@ async def list_specs():
         for f in sorted(examples_dir.glob("*.yaml")):
             try:
                 spec = parse_yaml(f)
-                specs.append({
-                    "path": f"examples/{f.name}",
-                    "agent": spec.agent,
-                    "persona_name": spec.persona.name,
-                    "journey_count": len(spec.journeys),
-                })
+                specs.append(
+                    {
+                        "path": f"examples/{f.name}",
+                        "agent": spec.agent,
+                        "persona_name": spec.persona.name,
+                        "journey_count": len(spec.journeys),
+                    }
+                )
             except Exception:
                 # Skip invalid files
-                specs.append({
-                    "path": f"examples/{f.name}",
-                    "agent": f.stem,
-                    "persona_name": "",
-                    "journey_count": 0,
-                })
+                specs.append(
+                    {
+                        "path": f"examples/{f.name}",
+                        "agent": f.stem,
+                        "persona_name": "",
+                        "journey_count": 0,
+                    }
+                )
     return specs
 
 
 class SaveSpecRequest(BaseModel):
     """Request to save a YAML spec to disk."""
+
     filename: str = Field(description="Filename (e.g. 'pto_handler.yaml')")
     yaml_content: str = Field(description="Full YAML content to save")
 
@@ -415,6 +429,7 @@ async def save_spec(request: SaveSpecRequest):
     # Validate YAML parses correctly
     try:
         import yaml as yaml_lib
+
         yaml_lib.safe_load(request.yaml_content)
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Invalid YAML: {e}")
@@ -483,12 +498,14 @@ async def upload_file(file: UploadFile):
         # PDF — try simple text extraction
         try:
             import io
+
             # Use a basic PDF text extractor (no heavy dependencies)
             # Extract text between stream markers as a lightweight approach
             text_parts = []
             # Try pypdf if available
             try:
                 from pypdf import PdfReader
+
                 reader = PdfReader(io.BytesIO(content_bytes))
                 for page in reader.pages:
                     page_text = page.extract_text()
@@ -501,6 +518,7 @@ async def upload_file(file: UploadFile):
                     raw = content_bytes.decode("latin-1")
                     # Very basic: look for text between BT and ET markers
                     import re
+
                     bt_et = re.findall(r"BT\s*(.*?)\s*ET", raw, re.DOTALL)
                     for block in bt_et:
                         # Extract Tj strings
@@ -518,7 +536,9 @@ async def upload_file(file: UploadFile):
             raise HTTPException(status_code=422, detail=f"Failed to parse PDF: {e}")
 
     if not extracted_text.strip():
-        raise HTTPException(status_code=422, detail="Could not extract any text from the file")
+        raise HTTPException(
+            status_code=422, detail="Could not extract any text from the file"
+        )
 
     # Truncate extremely long content (LLM context window consideration)
     max_chars = 50000
@@ -549,13 +569,15 @@ async def get_spec(spec_path: str):
     journeys = []
     for j in spec.journeys:
         step_types = [s.type for s in j.steps]
-        journeys.append(JourneySummary(
-            name=j.name,
-            description=j.description,
-            trigger_description=j.trigger.description,
-            step_count=len(j.steps),
-            step_types=step_types,
-        ))
+        journeys.append(
+            JourneySummary(
+                name=j.name,
+                description=j.description,
+                trigger_description=j.trigger.description,
+                step_count=len(j.steps),
+                step_types=step_types,
+            )
+        )
 
     return SpecSummary(
         agent=spec.agent,
@@ -596,22 +618,26 @@ async def get_spec_detail(spec_path: str):
     for j in spec.journeys:
         steps = []
         for s in j.steps:
-            steps.append(JourneyStepDetail(
-                name=s.name,
-                type=s.type,
-                description=_get_step_description(s),
-                prompt=_get_step_prompt(s),
-                condition=getattr(s, 'condition', None),
-                if_true=getattr(s, 'if_true', None),
-                if_false=getattr(s, 'if_false', None),
-                escalate_to=getattr(s, 'escalate_to', None),
-            ))
-        journeys.append(JourneyDetail(
-            name=j.name,
-            description=j.description,
-            trigger_description=j.trigger.description,
-            steps=steps,
-        ))
+            steps.append(
+                JourneyStepDetail(
+                    name=s.name,
+                    type=s.type,
+                    description=_get_step_description(s),
+                    prompt=_get_step_prompt(s),
+                    condition=getattr(s, "condition", None),
+                    if_true=getattr(s, "if_true", None),
+                    if_false=getattr(s, "if_false", None),
+                    escalate_to=getattr(s, "escalate_to", None),
+                )
+            )
+        journeys.append(
+            JourneyDetail(
+                name=j.name,
+                description=j.description,
+                trigger_description=j.trigger.description,
+                steps=steps,
+            )
+        )
 
     return {
         "agent": spec.agent,
@@ -636,7 +662,9 @@ async def run_journey(request: RunRequest):
     # Parse spec
     spec_path = _resolve_spec_path(request.spec_path)
     if not spec_path.exists():
-        raise HTTPException(status_code=404, detail=f"Spec not found: {request.spec_path}")
+        raise HTTPException(
+            status_code=404, detail=f"Spec not found: {request.spec_path}"
+        )
 
     try:
         spec = parse_yaml(spec_path)
@@ -719,7 +747,7 @@ async def run_journey(request: RunRequest):
             raise HTTPException(status_code=500, detail=f"Execution failed: {e}")
 
     # Update session — persist auto-generated thread_id from executor
-    if not session.thread_id and hasattr(ctx, 'thread_id') and ctx.thread_id:
+    if not session.thread_id and hasattr(ctx, "thread_id") and ctx.thread_id:
         session.thread_id = ctx.thread_id
 
     status = ctx.status.value
@@ -741,7 +769,9 @@ async def stream_journey(request: RunRequest):
     # Validate inputs
     spec_path = _resolve_spec_path(request.spec_path)
     if not spec_path.exists():
-        raise HTTPException(status_code=404, detail=f"Spec not found: {request.spec_path}")
+        raise HTTPException(
+            status_code=404, detail=f"Spec not found: {request.spec_path}"
+        )
 
     try:
         spec = parse_yaml(spec_path)
@@ -893,7 +923,9 @@ async def resume_hitl(execution_id: str, request: HITLResumeRequest):
     """
     session = sessions.get(execution_id)
     if session is None:
-        raise HTTPException(status_code=404, detail=f"Execution '{execution_id}' not found")
+        raise HTTPException(
+            status_code=404, detail=f"Execution '{execution_id}' not found"
+        )
 
     if session.status != "waiting_hitl":
         raise HTTPException(
@@ -957,7 +989,9 @@ async def resume_handoff(execution_id: str, request: HandoffResumeRequest):
     """
     session = sessions.get(execution_id)
     if session is None:
-        raise HTTPException(status_code=404, detail=f"Execution '{execution_id}' not found")
+        raise HTTPException(
+            status_code=404, detail=f"Execution '{execution_id}' not found"
+        )
 
     if session.status != "waiting_hitl":
         raise HTTPException(
@@ -1002,7 +1036,9 @@ async def get_execution(execution_id: str):
     """Get execution result by ID."""
     session = sessions.get(execution_id)
     if session is None:
-        raise HTTPException(status_code=404, detail=f"Execution '{execution_id}' not found")
+        raise HTTPException(
+            status_code=404, detail=f"Execution '{execution_id}' not found"
+        )
 
     if session.context is None:
         raise HTTPException(status_code=404, detail="Execution has not started yet")
@@ -1049,7 +1085,9 @@ async def ghostwrite(request: GhostwriteRequest):
             description=request.description,
             agent_name=request.agent_name,
             persona_name=request.persona_name,
-            tools_available=request.tools_available if request.tools_available else None,
+            tools_available=(
+                request.tools_available if request.tools_available else None
+            ),
             knowledge_docs=request.knowledge_docs if request.knowledge_docs else None,
         )
     except Exception as e:
@@ -1065,21 +1103,23 @@ async def ghostwrite(request: GhostwriteRequest):
                 type=s.type,
                 description=_get_step_description(s),
                 prompt=_get_step_prompt(s),
-                condition=getattr(s, 'condition', None),
-                if_true=getattr(s, 'if_true', None),
-                if_false=getattr(s, 'if_false', None),
-                escalate_to=getattr(s, 'escalate_to', None),
-                output_key=getattr(s, 'output_key', None),
-                tool=getattr(s, 'tool', None),
+                condition=getattr(s, "condition", None),
+                if_true=getattr(s, "if_true", None),
+                if_false=getattr(s, "if_false", None),
+                escalate_to=getattr(s, "escalate_to", None),
+                output_key=getattr(s, "output_key", None),
+                tool=getattr(s, "tool", None),
             )
             steps.append(step_data)
 
-        journeys.append(GhostwriteJourneyResponse(
-            name=j.name,
-            description=j.description,
-            trigger_description=j.trigger.description,
-            steps=steps,
-        ))
+        journeys.append(
+            GhostwriteJourneyResponse(
+                name=j.name,
+                description=j.description,
+                trigger_description=j.trigger.description,
+                steps=steps,
+            )
+        )
 
     return GhostwriteResponse(
         agent_name=result.spec.agent,
@@ -1094,16 +1134,16 @@ async def ghostwrite(request: GhostwriteRequest):
 
 def _get_step_description(step) -> str:
     """Extract description from a step (varies by type)."""
-    if hasattr(step, 'prompt') and step.prompt:
+    if hasattr(step, "prompt") and step.prompt:
         return step.prompt[:120]
-    if hasattr(step, 'description') and step.description:
+    if hasattr(step, "description") and step.description:
         return step.description
     return f"{step.type} step: {step.name}"
 
 
 def _get_step_prompt(step) -> str | None:
     """Extract the full prompt from a step if it has one."""
-    if hasattr(step, 'prompt'):
+    if hasattr(step, "prompt"):
         return step.prompt
     return None
 
@@ -1152,11 +1192,13 @@ async def websocket_run(ws: WebSocket):
         session.thread_id = request.thread_id
         sessions.update(session.id, status="running")
 
-        await ws.send_json({
-            "event": "execution_started",
-            "execution_id": session.id,
-            "thread_id": session.thread_id,
-        })
+        await ws.send_json(
+            {
+                "event": "execution_started",
+                "execution_id": session.id,
+                "thread_id": session.thread_id,
+            }
+        )
 
         tools = ToolRegistry()
         _register_demo_tools(tools)
@@ -1220,10 +1262,12 @@ async def websocket_run(ws: WebSocket):
 
         # Send final result
         response = _build_run_response(session, ctx)
-        await ws.send_json({
-            "event": "execution_completed",
-            "result": response.model_dump(mode="json"),
-        })
+        await ws.send_json(
+            {
+                "event": "execution_completed",
+                "result": response.model_dump(mode="json"),
+            }
+        )
 
     except WebSocketDisconnect:
         pass
