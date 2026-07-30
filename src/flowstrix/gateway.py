@@ -221,6 +221,61 @@ class GatewayConfig:
         return chain
 
 
+@dataclass
+class CompletionResult:
+    """A chat completion plus the metadata a trace inspector needs.
+
+    ``complete()`` returns only the text, which is all most callers want.
+    Step execution wants more: which model actually answered (the chain may
+    have failed over), and what it cost in tokens. Without those, an
+    execution trace can only show what the YAML declared rather than what
+    happened.
+    """
+
+    text: str
+    model: str
+    provider: str
+    tokens_in: int | None = None
+    tokens_out: int | None = None
+    cached: bool = False
+
+    @property
+    def usage(self) -> dict[str, int] | None:
+        """Token counts as a dict, or None when the provider didn't report any.
+
+        Shaped for ``StepTrace.llm_usage``. Cache hits legitimately have no
+        usage — no tokens were spent — so callers must treat None as "not
+        applicable" rather than "zero".
+        """
+        if self.tokens_in is None and self.tokens_out is None:
+            return None
+        return {
+            "tokens_in": self.tokens_in or 0,
+            "tokens_out": self.tokens_out or 0,
+        }
+
+
+def _extract_usage(response: Any) -> tuple[int | None, int | None]:
+    """Pull prompt/completion token counts off an OpenAI-compatible response.
+
+    Every provider in the chain speaks the OpenAI wire format, but usage is
+    optional in that spec and the Gemini-compatible endpoint has been known
+    to omit it. Missing or malformed usage must never break a completion, so
+    this degrades to (None, None).
+    """
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return None, None
+
+    def _coerce(value: Any) -> int | None:
+        return value if isinstance(value, int) else None
+
+    return (
+        _coerce(getattr(usage, "prompt_tokens", None)),
+        _coerce(getattr(usage, "completion_tokens", None)),
+    )
+
+
 class GatewayConfigError(Exception):
     """Raised when gateway configuration is missing or invalid."""
 
@@ -323,6 +378,54 @@ def _cache_key(
     return f"flowstrix:llm:{digest}"
 
 
+# Cache entries used to be the bare completion text. They now carry the model
+# and token counts alongside it so a cache hit can still populate a trace.
+# _decode_cache_entry accepts both shapes, so entries written by an earlier
+# deploy keep serving instead of being thrown away on rollout.
+_CACHE_ENVELOPE_VERSION = 1
+
+
+def _encode_cache_entry(result: CompletionResult) -> str:
+    return json.dumps(
+        {
+            "v": _CACHE_ENVELOPE_VERSION,
+            "text": result.text,
+            "model": result.model,
+            "provider": result.provider,
+            "tokens_in": result.tokens_in,
+            "tokens_out": result.tokens_out,
+        }
+    )
+
+
+def _decode_cache_entry(
+    raw: str, fallback_model: str, fallback_provider: str
+) -> CompletionResult:
+    """Rehydrate a cache entry, tolerating the legacy plain-text format."""
+    try:
+        payload = json.loads(raw)
+    except (TypeError, ValueError):
+        payload = None
+
+    if not isinstance(payload, dict) or payload.get("v") != _CACHE_ENVELOPE_VERSION:
+        # Legacy entry (or something unexpected): treat the whole value as text.
+        return CompletionResult(
+            text=raw,
+            model=fallback_model,
+            provider=fallback_provider,
+            cached=True,
+        )
+
+    return CompletionResult(
+        text=payload.get("text", ""),
+        model=payload.get("model") or fallback_model,
+        provider=payload.get("provider") or fallback_provider,
+        tokens_in=payload.get("tokens_in"),
+        tokens_out=payload.get("tokens_out"),
+        cached=True,
+    )
+
+
 class ChatGateway:
     """LLM chat completion gateway with automatic provider fallback + response caching.
 
@@ -349,19 +452,40 @@ class ChatGateway:
         temperature: float = 0.3,
         max_tokens: int = 512,
     ) -> str:
+        """Run a chat completion and return just the text.
+
+        Convenience wrapper over :meth:`complete_detailed` for the many
+        callers that don't care which provider answered or what it cost.
+        """
+        return self.complete_detailed(
+            messages, temperature=temperature, max_tokens=max_tokens
+        ).text
+
+    def complete_detailed(
+        self,
+        messages: list[dict[str, str]],
+        temperature: float = 0.3,
+        max_tokens: int = 512,
+    ) -> CompletionResult:
         """Run a chat completion, serving from cache when possible.
 
         Cache key is scoped to the primary provider's model so a fallback
         response (from a different model) is never persisted as if it came
         from the primary — avoids caching a lower-quality answer under the
         primary's key.
+
+        Returns the resolved model, provider and token counts alongside the
+        text so callers can record what actually happened. A cache hit
+        reports the model it was produced by and ``cached=True``; token
+        counts on a hit reflect the original call, or are None for entries
+        written before usage was tracked.
         """
-        primary_model = self._chain[0][2]
+        primary_provider, _, primary_model = self._chain[0]
         key = _cache_key(primary_model, messages, temperature, max_tokens)
 
         cached = _cache_command("GET", key)
         if cached is not None:
-            return cached
+            return _decode_cache_entry(cached, primary_model, primary_provider)
 
         last_error: Exception | None = None
         for provider, client, model in self._chain:
@@ -372,10 +496,19 @@ class ChatGateway:
                     temperature=temperature,
                     max_tokens=max_tokens,
                 )
-                text = response.choices[0].message.content or ""
+                tokens_in, tokens_out = _extract_usage(response)
+                result = CompletionResult(
+                    text=response.choices[0].message.content or "",
+                    model=model,
+                    provider=provider,
+                    tokens_in=tokens_in,
+                    tokens_out=tokens_out,
+                )
                 if model == primary_model:
-                    _cache_command("SETEX", key, CACHE_TTL_SECONDS, text)
-                return text
+                    _cache_command(
+                        "SETEX", key, CACHE_TTL_SECONDS, _encode_cache_entry(result)
+                    )
+                return result
             except RETRYABLE_ERRORS as e:
                 logger.warning(
                     "Provider %s failed, trying next in chain: %s", provider, e

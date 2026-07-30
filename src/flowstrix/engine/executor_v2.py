@@ -563,6 +563,7 @@ class LangGraphExecutor:
                 output=trace_entry.get("output"),
                 error=trace_entry.get("error"),
                 duration_ms=trace_entry.get("duration_ms"),
+                llm_usage=trace_entry.get("llm_usage"),
             )
             ctx.traces.append(trace)
 

@@ -63,6 +63,11 @@ class StepTraceResponse(BaseModel):
     status: str
     duration_ms: Optional[float] = None
     output_preview: Optional[str] = None
+    # Token counts for steps that called a model. Null for deterministic
+    # steps (which never touch an LLM) and for cache hits (which spend no
+    # tokens) — the two cases are distinguishable by step_type.
+    tokens_in: Optional[int] = None
+    tokens_out: Optional[int] = None
 
 
 class HITLInfo(BaseModel):
@@ -106,6 +111,10 @@ class StepEvent(BaseModel):
     step_type: Optional[str] = None
     status: Optional[str] = None
     output_preview: Optional[str] = None
+    # Mirrors StepTraceResponse so the live trace panel can show token counts
+    # as steps stream in, rather than only after the final result arrives.
+    tokens_in: Optional[int] = None
+    tokens_out: Optional[int] = None
     timestamp: float = 0.0
 
 

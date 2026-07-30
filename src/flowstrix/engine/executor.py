@@ -204,12 +204,12 @@ class JourneyExecutor:
                 trace.complete(output=result)
 
             elif isinstance(step, ReasonStep):
-                result = self._exec_reason(step, ctx)
-                trace.complete(output=result)
+                result, usage = self._exec_reason(step, ctx)
+                trace.complete(output=result, llm_usage=usage)
 
             elif isinstance(step, RespondStep):
-                result = self._exec_respond(step, ctx)
-                trace.complete(output=result)
+                result, usage = self._exec_respond(step, ctx)
+                trace.complete(output=result, llm_usage=usage)
 
             elif isinstance(step, BranchStep):
                 next_step = self._exec_branch(step, ctx)
@@ -251,8 +251,15 @@ class JourneyExecutor:
         ctx.set(step.output_key, result)
         return result
 
-    def _exec_reason(self, step: ReasonStep, ctx: ExecutionContext) -> Any:
-        """Execute a reasoning step — LLM evaluates context and produces structured output."""
+    def _exec_reason(
+        self, step: ReasonStep, ctx: ExecutionContext
+    ) -> tuple[Any, dict[str, int] | None]:
+        """Execute a reasoning step — LLM evaluates context and produces structured output.
+
+        Returns the step output and the token usage of the underlying call, so
+        the caller can record both on the trace. Usage is None when the
+        provider didn't report it or the response came from cache.
+        """
         # Build the reasoning prompt
         system_prompt = self._build_system_prompt()
 
@@ -279,7 +286,7 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
 
         # Cached + fallback-aware LLM call (Upstash exact-match cache, then
         # provider chain with automatic failover).
-        result_text = self.gateway.complete(
+        completion = self.gateway.complete_detailed(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -287,6 +294,7 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
             temperature=step.temperature,
             max_tokens=step.max_tokens,
         )
+        result_text = completion.text
 
         # Try to parse as JSON if output_schema is defined
         if step.output_schema:
@@ -302,10 +310,15 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
             for k, v in result.items():
                 ctx.set(k, v)
 
-        return result
+        return result, completion.usage
 
-    def _exec_respond(self, step: RespondStep, ctx: ExecutionContext) -> str:
-        """Execute a respond step — generate user-facing message."""
+    def _exec_respond(
+        self, step: RespondStep, ctx: ExecutionContext
+    ) -> tuple[str, dict[str, int] | None]:
+        """Execute a respond step — generate user-facing message.
+
+        Returns the message and the token usage of the underlying call.
+        """
         system_prompt = self._build_system_prompt()
 
         # Include referenced context
@@ -330,7 +343,7 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
         if step.tone:
             user_prompt += f"\n## Tone\n{step.tone}\n"
 
-        result = self.gateway.complete(
+        completion = self.gateway.complete_detailed(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -338,8 +351,9 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
             temperature=0.3,
             max_tokens=512,
         )
+        result = completion.text
         ctx.add_message("assistant", result)
-        return result
+        return result, completion.usage
 
     def _exec_branch(self, step: BranchStep, ctx: ExecutionContext) -> str:
         """Execute a branch — purely deterministic conditional."""

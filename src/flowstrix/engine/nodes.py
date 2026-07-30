@@ -40,6 +40,7 @@ def _make_trace(
     output: Any = None,
     error: str | None = None,
     duration_ms: float | None = None,
+    llm_usage: dict[str, int] | None = None,
 ) -> StepTraceEntry:
     """Create a trace entry."""
     return StepTraceEntry(
@@ -49,6 +50,7 @@ def _make_trace(
         output=output,
         error=error,
         duration_ms=duration_ms,
+        llm_usage=llm_usage,
     )
 
 
@@ -269,7 +271,7 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
 {json.dumps(step.output_schema, indent=2)}
 """
 
-            result_text = self.gateway.complete(
+            completion = self.gateway.complete_detailed(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
@@ -277,6 +279,7 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
                 temperature=step.temperature,
                 max_tokens=step.max_tokens,
             )
+            result_text = completion.text
             if step.output_schema:
                 result = _parse_json_response(result_text)
             else:
@@ -290,7 +293,11 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
 
             duration = (time.time() - start) * 1000
             trace = _make_trace(
-                step.name, "reason", output=result, duration_ms=duration
+                step.name,
+                "reason",
+                output=result,
+                duration_ms=duration,
+                llm_usage=completion.usage,
             )
             return {
                 "data": data,
@@ -331,7 +338,7 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
             if step.tone:
                 user_prompt += f"\n## Tone\n{step.tone}\n"
 
-            result = self.gateway.complete(
+            completion = self.gateway.complete_detailed(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
@@ -339,11 +346,16 @@ Respond ONLY with valid JSON (no markdown fences, no explanation). Match this sc
                 temperature=0.3,
                 max_tokens=512,
             )
+            result = completion.text
             messages = state["messages"] + [{"role": "assistant", "content": result}]
 
             duration = (time.time() - start) * 1000
             trace = _make_trace(
-                step.name, "respond", output=result, duration_ms=duration
+                step.name,
+                "respond",
+                output=result,
+                duration_ms=duration,
+                llm_usage=completion.usage,
             )
             return {
                 "messages": messages,

@@ -38,10 +38,20 @@ class StepTrace:
     llm_usage: dict[str, int] | None = None  # tokens in/out
     duration_ms: float | None = None
 
-    def complete(self, output: Any = None, error: str | None = None):
+    def complete(
+        self,
+        output: Any = None,
+        error: str | None = None,
+        llm_usage: dict[str, int] | None = None,
+    ):
         self.completed_at = time.time()
         self.output = output
         self.error = error
+        # Only set on steps that actually called a model, and only when the
+        # provider reported usage — left None otherwise so the UI can tell
+        # "no LLM involved" apart from "zero tokens".
+        if llm_usage is not None:
+            self.llm_usage = llm_usage
         self.status = StepStatus.FAILED if error else StepStatus.COMPLETED
         self.duration_ms = (self.completed_at - self.started_at) * 1000
 
@@ -170,6 +180,7 @@ class ExecutionContext:
                 "status": t.status.value,
                 "duration_ms": round(t.duration_ms, 1) if t.duration_ms else None,
                 "output_preview": str(t.output)[:100] if t.output else None,
+                "llm_usage": t.llm_usage,
             }
             for t in self.traces
         ]

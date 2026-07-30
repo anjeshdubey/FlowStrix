@@ -21,6 +21,9 @@ class StepTraceEntry(TypedDict):
     output: Any
     error: Optional[str]
     duration_ms: Optional[float]
+    # Token counts for steps that called a model; None for deterministic
+    # steps and for cache hits, which spend no tokens.
+    llm_usage: Optional[dict[str, int]]
 
 
 class ExecutionState(TypedDict):
