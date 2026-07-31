@@ -113,7 +113,7 @@ Your output MUST be a valid FlowStrix AgentSpec. The schema has these components
 5. **hitl** (gate): Human approval checkpoint. Fields: name, condition, escalation_type (approval/handoff/review), escalate_to, context_to_share
 6. **tool** (deterministic): Execute an action. Fields: name, tool, params, output_key, requires_confirmation
 7. **wait** (pause): Wait for event/timeout. Fields: name, event, timeout_seconds
-8. **handoff** (form): Switch from conversation to a structured form for complex or compliance-sensitive input. Fields: name, trigger_condition, fields (list of {id, label, field_type: text/textarea/select/multiselect/date/checkbox/file, required, options, placeholder, validation}), prefill_from_context (map of field_id to context_key), output_key, transition_message
+8. **handoff** (form): Switch from conversation to a structured form for complex or compliance-sensitive input. Not the same as hitl's `escalation_type: handoff` (which escalates to a human, not a form). Fields: name, trigger_condition, fields (list of {id, label, field_type: text/textarea/select/multiselect/date/checkbox/file, required, options, placeholder, validation}), prefill_from_context (map of field_id to context_key), output_key, transition_message
 
 ## Design Principles
 - Start with a lookup to gather context (never reason without data)
