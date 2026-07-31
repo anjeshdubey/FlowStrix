@@ -1,5 +1,4 @@
 import { useCallback, useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
 import { ghostwrite, saveSpec } from '../../api'
 import { GhostwriteResponse } from '../../types'
 import PromptEntry from './PromptEntry'
@@ -192,7 +191,7 @@ export default function AuthorView() {
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <PromptEntry onGenerate={handleGenerate} loading={loading} />
         {error && (
-          <div className="mt-4 p-3 bg-danger/10 border border-danger/30 rounded-lg text-sm text-danger max-w-2xl w-full">
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 max-w-2xl w-full">
             <strong>Error:</strong> {error}
           </div>
         )}
@@ -204,16 +203,16 @@ export default function AuthorView() {
     <div className="space-y-4">
       {/* Confidence & Explanation banner */}
       {explanation && (
-        <div className="flex items-start gap-3 p-3 bg-accent/10 border border-accent/30 rounded-lg">
+        <div className="flex items-start gap-3 p-3 bg-forge-50 border border-forge-200 rounded-lg">
           <div className="flex-shrink-0 mt-0.5">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-surface-0 ${
-              confidence >= 0.8 ? 'bg-success' : confidence >= 0.6 ? 'bg-warning' : 'bg-danger'
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+              confidence >= 0.8 ? 'bg-green-500' : confidence >= 0.6 ? 'bg-amber-500' : 'bg-red-500'
             }`}>
               {Math.round(confidence * 100)}
             </div>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-secondary whitespace-pre-line line-clamp-3">{explanation}</p>
+            <p className="text-sm text-gray-700 whitespace-pre-line line-clamp-3">{explanation}</p>
           </div>
         </div>
       )}
@@ -222,9 +221,11 @@ export default function AuthorView() {
       <div className="flex items-center justify-between">
         <button
           onClick={handleBackToPrompt}
-          className="flex items-center gap-1.5 text-sm text-secondary hover:text-primary transition-colors"
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
           New Journey
         </button>
 
@@ -232,7 +233,7 @@ export default function AuthorView() {
           <button
             onClick={() => setShowYaml(!showYaml)}
             className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-              showYaml ? 'bg-primary text-surface-0 border-primary' : 'bg-surface-1 text-secondary border-border-subtle hover:bg-surface-2'
+              showYaml ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
             }`}
           >
             {showYaml ? 'Hide YAML' : 'Show YAML'}
@@ -253,7 +254,7 @@ export default function AuthorView() {
               }
             }}
             disabled={saving || !yaml}
-            className="px-3 py-1.5 text-sm bg-accent text-surface-0 rounded-lg hover:brightness-110 transition-all disabled:opacity-50"
+            className="px-3 py-1.5 text-sm bg-forge-600 text-white rounded-lg hover:bg-forge-700 transition-colors disabled:opacity-50"
           >
             {saving ? 'Saving...' : saveMessage ? '✓ Saved' : 'Save Spec'}
           </button>
@@ -264,12 +265,12 @@ export default function AuthorView() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Canvas (or Canvas + YAML) */}
         <div className={`${selectedStep !== null ? 'lg:col-span-7' : showYaml ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
-          <div className="bg-surface-1 border border-border-subtle rounded-xl overflow-hidden">
-            <div className="bg-surface-2 border-b border-border-subtle px-4 py-2 flex items-center justify-between">
-              <span className="text-xs font-semibold text-secondary uppercase tracking-wide">Journey Canvas</span>
-              <span className="text-xs text-muted">{steps.length} steps</span>
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="bg-gray-50 border-b border-gray-200 px-4 py-2 flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Journey Canvas</span>
+              <span className="text-xs text-gray-400">{steps.length} steps</span>
             </div>
-            <div className="overflow-y-auto max-h-[65vh]" style={{ backgroundImage: 'radial-gradient(#23262c 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
+            <div className="overflow-y-auto max-h-[65vh]" style={{ backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
               <FlowCanvas
                 steps={steps}
                 agentName={agentName}

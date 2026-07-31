@@ -5,6 +5,22 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Brand scale the pre-redesign shell is built on. Dropping it silently
+        // un-styles every `forge-*` utility, since Tailwind emits nothing for
+        // colors it doesn't know about.
+        forge: {
+          50: '#f0f7ff',
+          100: '#e0effe',
+          200: '#bae0fd',
+          300: '#7cc8fb',
+          400: '#36adf6',
+          500: '#0c93e7',
+          600: '#0074c5',
+          700: '#015ca0',
+          800: '#064f84',
+          900: '#0b426e',
+          950: '#072a49',
+        },
         surface: { 0: '#08090b', 1: '#101215', 2: '#191c21' },
         border: { subtle: '#23262c', DEFAULT: '#2e323a', strong: '#3d424c' },
         accent: { DEFAULT: '#2f8aff', glow: 'rgba(47,138,255,0.28)' },
