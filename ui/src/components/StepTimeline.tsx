@@ -1,18 +1,17 @@
-import { Search, Brain, MessageSquare, GitBranch, UserCheck, Wrench, Clock, Settings } from 'lucide-react'
 import { StepState } from '../types'
 
 interface StepTimelineProps {
   steps: StepState[]
 }
 
-const STEP_TYPE_ICONS: Record<string, typeof Search> = {
-  lookup: Search,
-  reason: Brain,
-  respond: MessageSquare,
-  branch: GitBranch,
-  hitl: UserCheck,
-  tool: Wrench,
-  wait: Clock,
+const STEP_TYPE_ICONS: Record<string, string> = {
+  lookup: '🔍',
+  reason: '🧠',
+  respond: '💬',
+  branch: '🔀',
+  hitl: '🙋',
+  tool: '🔧',
+  wait: '⏳',
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -28,59 +27,56 @@ export default function StepTimeline({ steps }: StepTimelineProps) {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-1 font-semibold text-secondary uppercase tracking-wide">
+      <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
         Execution Steps
       </h3>
 
       <div className="space-y-2">
-        {steps.map((step, index) => {
-          const Icon = STEP_TYPE_ICONS[step.step_type] || Settings
-          return (
-            <div
-              key={`${step.step_name}-${index}`}
-              className={`step-card animate-slide-in ${getCardClass(step.status)}`}
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {/* Status indicator */}
-                  <div className={`w-2.5 h-2.5 rounded-full ${getStatusDotClass(step.status)}`}>
-                    {step.status === 'running' && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-accent animate-ping" />
-                    )}
-                  </div>
-
-                  {/* Step icon */}
-                  <Icon size={14} className="text-secondary" />
-
-                  {/* Step name */}
-                  <span className="font-medium text-2">{step.step_name}</span>
-
-                  {/* Step type badge */}
-                  <span className="text-1 bg-surface-2 px-1.5 py-0.5 rounded border border-border-subtle text-secondary">
-                    {step.step_type}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 text-1">
-                  {step.duration_ms !== undefined && (
-                    <span className="text-muted">
-                      {step.duration_ms.toFixed(0)}ms
-                    </span>
+        {steps.map((step, index) => (
+          <div
+            key={`${step.step_name}-${index}`}
+            className={`step-card animate-slide-in ${getCardClass(step.status)}`}
+            style={{ animationDelay: `${index * 100}ms` }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {/* Status indicator */}
+                <div className={`w-2.5 h-2.5 rounded-full ${getStatusDotClass(step.status)}`}>
+                  {step.status === 'running' && (
+                    <div className="w-2.5 h-2.5 rounded-full bg-forge-500 animate-ping" />
                   )}
-                  <span className="font-medium">{STATUS_LABELS[step.status]}</span>
                 </div>
+
+                {/* Step icon */}
+                <span className="text-sm">{STEP_TYPE_ICONS[step.step_type] || '⚙️'}</span>
+
+                {/* Step name */}
+                <span className="font-medium text-sm">{step.step_name}</span>
+
+                {/* Step type badge */}
+                <span className="text-[10px] bg-white/60 px-1.5 py-0.5 rounded border border-current/10">
+                  {step.step_type}
+                </span>
               </div>
 
-              {/* Output preview */}
-              {step.output_preview && (
-                <div className="mt-2 text-1 font-mono bg-surface-2 rounded p-2 truncate">
-                  {step.output_preview}
-                </div>
-              )}
+              <div className="flex items-center gap-2 text-xs">
+                {step.duration_ms !== undefined && (
+                  <span className="text-gray-400">
+                    {step.duration_ms.toFixed(0)}ms
+                  </span>
+                )}
+                <span className="font-medium">{STATUS_LABELS[step.status]}</span>
+              </div>
             </div>
-          )
-        })}
+
+            {/* Output preview */}
+            {step.output_preview && (
+              <div className="mt-2 text-xs font-mono bg-white/50 rounded p-2 truncate">
+                {step.output_preview}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -98,10 +94,10 @@ function getCardClass(status: string): string {
 
 function getStatusDotClass(status: string): string {
   switch (status) {
-    case 'running': return 'bg-accent'
-    case 'completed': return 'bg-success'
-    case 'failed': return 'bg-danger'
-    case 'hitl': return 'bg-warning'
-    default: return 'bg-muted'
+    case 'running': return 'bg-forge-500'
+    case 'completed': return 'bg-green-500'
+    case 'failed': return 'bg-red-500'
+    case 'hitl': return 'bg-amber-500'
+    default: return 'bg-gray-300'
   }
 }

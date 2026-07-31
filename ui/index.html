@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
@@ -28,7 +28,10 @@
     />
     <title>FlowStrix — Agent Workflow Engine</title>
   </head>
-  <body class="bg-surface-0 text-primary antialiased font-ui">
+  <!-- Theme lives with the app, not this template: one index.html serves both
+       the light demo at /FlowStrix/ and any dark build under /FlowStrix/next/,
+       so a shell that wants dark sets `dark` on documentElement itself. -->
+  <body class="bg-gray-50 text-gray-900 antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

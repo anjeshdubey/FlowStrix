@@ -7,7 +7,7 @@ export default function MessageThread({ messages }: MessageThreadProps) {
 
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-secondary uppercase tracking-wide">
+      <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
         Agent Response
       </h3>
       <div className="space-y-2">
@@ -16,14 +16,14 @@ export default function MessageThread({ messages }: MessageThreadProps) {
             key={i}
             className={`p-3 rounded-lg text-sm ${
               msg.role === 'assistant'
-                ? 'bg-accent/10 border border-accent/30 text-primary'
+                ? 'bg-forge-50 border border-forge-200 text-forge-900'
                 : msg.role === 'user'
-                ? 'bg-surface-2 border border-border-subtle text-primary'
-                : 'bg-surface-1 border border-border-subtle text-secondary'
+                ? 'bg-gray-100 border border-gray-200 text-gray-800'
+                : 'bg-gray-50 border border-gray-200 text-gray-600'
             }`}
           >
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
                 {msg.role}
               </span>
             </div>
