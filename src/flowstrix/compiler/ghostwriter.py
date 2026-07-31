@@ -15,38 +15,47 @@ but the input is English and the output is a fully executable spec.
 
 from __future__ import annotations
 
-import json
+import os
 from typing import Optional
 
 import instructor
 import yaml
-from openai import OpenAI
 from pydantic import BaseModel, Field
+
 
 from flowstrix.gateway import GatewayConfig, create_client, resolve_model
 
-# Use a faster model with a higher free-tier TPM limit for Ghostwriter
-# llama-3.1-8b-instant: 20k TPM vs llama-3.3-70b-versatile: 12k TPM
-GHOSTWRITER_DEFAULT_MODEL = "llama-3.1-8b-instant"
+# Ghostwriting is the most token-hungry path in the demo, so where a provider
+# offers a cheaper/faster model that still holds a large structured schema
+# together, prefer it over that provider's general default.
+#
+# Model ids are not portable between providers — sending one catalogue's slug
+# to another 404s rather than falling back — so any provider not listed here
+# keeps the id the gateway already resolved for it.
+GHOSTWRITER_MODELS: dict[str, str] = {
+    # 20k TPM on Groq's free tier vs 12k for llama-3.3-70b-versatile.
+    "groq": "llama-3.1-8b-instant",
+    # Together's own default (Qwen2.5-7B) does compile a valid spec, but the
+    # shape moves between identical runs — 11 steps with respond in the middle
+    # one time, a different 11 the next, and CamelCase step names. The 70B
+    # returns the same 7-step spec every time with the project's snake_case
+    # convention, for ~28s against ~12s. Authoring runs once per agent, so
+    # reproducibility is worth more here than latency.
+    "together": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+}
+
+# AgentSpec's steps are a discriminated union, which Together's structured
+# output endpoint cannot turn into a grammar — it rejects the request with
+# "failed to compile grammar" (422) before the model ever runs. MD_JSON puts
+# the schema in the prompt and validates client-side instead, so it needs
+# nothing from the provider. Providers absent from this map keep Instructor's
+# default tool-calling mode.
+GHOSTWRITER_MODES: dict[str, instructor.Mode] = {
+    "together": instructor.Mode.MD_JSON,
+}
 from flowstrix.schema.models import (
     AgentSpec,
-    BranchStep,
-    EscalationType,
-    HITLStep,
-    Journey,
-    KnowledgeSource,
-    KnowledgeSourceType,
-    LookupStep,
-    Persona,
-    ReasonStep,
-    RespondStep,
-    Simulation,
-    SimulationScenario,
-    ToolStep,
-    Trigger,
-    WaitStep,
 )
-
 
 # --- Intermediate models for structured generation ---
 
@@ -55,8 +64,12 @@ class GhostwriterInput(BaseModel):
     """What the user provides to Ghostwriter."""
 
     description: str = Field(description="Natural language description of the agent")
-    agent_name: Optional[str] = Field(default=None, description="Desired agent identifier")
-    persona_name: Optional[str] = Field(default=None, description="Agent's display name")
+    agent_name: Optional[str] = Field(
+        default=None, description="Desired agent identifier"
+    )
+    persona_name: Optional[str] = Field(
+        default=None, description="Agent's display name"
+    )
     tools_available: list[str] = Field(
         default_factory=list,
         description="List of available tool names (e.g., 'get_orders', 'process_refund')",
@@ -141,10 +154,25 @@ class Ghostwriter:
             gateway_config = GatewayConfig.from_env()
 
         raw_client = create_client(gateway_config)
-        self.client = instructor.from_openai(raw_client)
-        # Default to the provider's standard model for Ghostwriting
-        default_model = "gemini-2.5-flash" if gateway_config.provider == "gemini" else GHOSTWRITER_DEFAULT_MODEL
-        self.model = resolve_model(model or default_model)
+        mode = GHOSTWRITER_MODES.get(gateway_config.provider)
+        self.client = (
+            instructor.from_openai(raw_client, mode=mode)
+            if mode
+            else instructor.from_openai(raw_client)
+        )
+        # An explicit argument wins; then FLOWSTRIX_MODEL, which the gateway has
+        # already resolved against this provider's catalogue (and ignored if it
+        # names another provider's model); then any Ghostwriter-specific
+        # preference; then the provider's own default.
+        if model:
+            chosen = model
+        elif os.environ.get("FLOWSTRIX_MODEL"):
+            chosen = gateway_config.model
+        else:
+            chosen = GHOSTWRITER_MODELS.get(
+                gateway_config.provider, gateway_config.model
+            )
+        self.model = resolve_model(chosen)
 
     def compile(
         self,
@@ -264,11 +292,13 @@ Update the agent spec to incorporate this refinement. Keep everything else uncha
             parts.append(f"\n## Persona Name\n{persona_name}")
 
         if tools_available:
-            parts.append(f"\n## Available Tools\n" + "\n".join(f"- {t}" for t in tools_available))
+            parts.append(
+                "\n## Available Tools\n" + "\n".join(f"- {t}" for t in tools_available)
+            )
 
         if knowledge_docs:
             parts.append(
-                f"\n## Available Knowledge Documents\n"
+                "\n## Available Knowledge Documents\n"
                 + "\n".join(f"- {d}" for d in knowledge_docs)
             )
 
@@ -357,10 +387,7 @@ Update the agent spec to incorporate this refinement. Keep everything else uncha
             score += 0.05
 
         # Has HITL somewhere
-        has_hitl = any(
-            any(s.type == "hitl" for s in j.steps)
-            for j in spec.journeys
-        )
+        has_hitl = any(any(s.type == "hitl" for s in j.steps) for j in spec.journeys)
         if has_hitl:
             score += 0.1
 
