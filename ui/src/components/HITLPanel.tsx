@@ -11,38 +11,38 @@ export default function HITLPanel({ hitlInfo, onDecision, loading }: HITLPanelPr
   const [notes, setNotes] = useState('')
 
   return (
-    <div className="border-2 border-amber-300 bg-amber-50 rounded-lg p-5 animate-slide-in">
+    <div className="border-2 border-amber-300 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 rounded-lg p-5 animate-slide-in">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-          <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/15 rounded-full flex items-center justify-center flex-shrink-0">
+          <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
         </div>
 
         <div className="flex-1">
-          <h3 className="font-semibold text-amber-900 text-lg">Human Decision Required</h3>
-          <p className="text-sm text-amber-700 mt-1">
+          <h3 className="font-semibold text-amber-900 dark:text-amber-300 text-lg">Human Decision Required</h3>
+          <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
             Execution paused — this step requires human approval before proceeding.
           </p>
 
           {/* Escalation details */}
-          <div className="mt-3 bg-white rounded-md border border-amber-200 p-3 space-y-2">
+          <div className="mt-3 bg-white dark:bg-surface-2 rounded-md border border-amber-200 dark:border-amber-500/20 p-3 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Step:</span>
-              <span className="font-medium text-gray-900">{hitlInfo.step_name}</span>
+              <span className="text-gray-500 dark:text-secondary">Step:</span>
+              <span className="font-medium text-gray-900 dark:text-primary">{hitlInfo.step_name}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Escalation:</span>
-              <span className="font-medium text-gray-900">{hitlInfo.escalation_type}</span>
+              <span className="text-gray-500 dark:text-secondary">Escalation:</span>
+              <span className="font-medium text-gray-900 dark:text-primary">{hitlInfo.escalation_type}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Escalate to:</span>
-              <span className="font-medium text-gray-900">{hitlInfo.escalate_to}</span>
+              <span className="text-gray-500 dark:text-secondary">Escalate to:</span>
+              <span className="font-medium text-gray-900 dark:text-primary">{hitlInfo.escalate_to}</span>
             </div>
             {Object.keys(hitlInfo.context).length > 0 && (
-              <div className="pt-2 border-t border-amber-100">
-                <span className="text-xs text-gray-500 block mb-1">Context:</span>
-                <pre className="text-xs font-mono bg-gray-50 rounded p-2 overflow-x-auto">
+              <div className="pt-2 border-t border-amber-100 dark:border-amber-500/20">
+                <span className="text-xs text-gray-500 dark:text-secondary block mb-1">Context:</span>
+                <pre className="text-xs font-mono bg-gray-50 dark:bg-surface-1 text-gray-900 dark:text-primary rounded p-2 overflow-x-auto">
                   {JSON.stringify(hitlInfo.context, null, 2)}
                 </pre>
               </div>
@@ -51,13 +51,13 @@ export default function HITLPanel({ hitlInfo, onDecision, loading }: HITLPanelPr
 
           {/* Notes input */}
           <div className="mt-3">
-            <label className="block text-sm font-medium text-amber-800 mb-1">Notes (optional)</label>
+            <label className="block text-sm font-medium text-amber-800 dark:text-amber-300 mb-1">Notes (optional)</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Reason for decision..."
               rows={2}
-              className="w-full px-3 py-2 border border-amber-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+              className="w-full px-3 py-2 bg-white dark:bg-surface-1 text-gray-900 dark:text-primary border border-amber-200 dark:border-amber-500/30 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
             />
           </div>
 

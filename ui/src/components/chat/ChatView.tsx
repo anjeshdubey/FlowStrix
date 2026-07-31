@@ -246,21 +246,21 @@ export default function ChatView() {
   return (
     <div className="flex flex-col h-[calc(100vh-12rem)] max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white rounded-t-lg">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-border-subtle bg-white dark:bg-surface-1 rounded-t-lg">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-primary">Chat</h2>
           {/* Engine Badge */}
           <span
             className={`text-xs font-medium px-2 py-0.5 rounded-full ${
               engine === 'langgraph'
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'bg-amber-100 text-amber-700'
+                ? 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                : 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400'
             }`}
           >
             {engine === 'langgraph' ? 'LangGraph' : 'Legacy'}
           </span>
           {threadId && (
-            <span className="text-xs text-gray-400 font-mono">
+            <span className="text-xs text-gray-400 dark:text-muted font-mono">
               thread: {threadId.slice(0, 8)}...
             </span>
           )}
@@ -268,13 +268,13 @@ export default function ChatView() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleNewConversation}
-            className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-secondary bg-gray-100 dark:bg-surface-2 rounded-md hover:bg-gray-200 dark:hover:bg-surface-2/70 transition-colors"
           >
             New Conversation
           </button>
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className="p-1.5 text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100 transition-colors"
+            className="p-1.5 text-gray-500 dark:text-secondary hover:text-gray-700 dark:hover:text-primary rounded-md hover:bg-gray-100 dark:hover:bg-surface-2 transition-colors"
             title="Settings"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -287,17 +287,17 @@ export default function ChatView() {
 
       {/* Settings Panel (collapsible) */}
       {showSettings && (
-        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 space-y-3 animate-slide-in">
+        <div className="px-4 py-3 bg-gray-50 dark:bg-surface-2 border-b border-gray-200 dark:border-border-subtle space-y-3 animate-slide-in">
           {/* Engine Toggle */}
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700">Engine:</label>
-            <div className="inline-flex bg-gray-200 p-0.5 rounded-md">
+            <label className="text-sm font-medium text-gray-700 dark:text-secondary">Engine:</label>
+            <div className="inline-flex bg-gray-200 dark:bg-surface-1 p-0.5 rounded-md">
               <button
                 onClick={() => setEngine('langgraph')}
                 className={`px-3 py-1 text-xs font-medium rounded transition-all ${
                   engine === 'langgraph'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white dark:bg-surface-2 text-gray-900 dark:text-primary shadow-sm'
+                    : 'text-gray-600 dark:text-secondary hover:text-gray-900 dark:hover:text-primary'
                 }`}
               >
                 LangGraph
@@ -306,8 +306,8 @@ export default function ChatView() {
                 onClick={() => setEngine('legacy')}
                 className={`px-3 py-1 text-xs font-medium rounded transition-all ${
                   engine === 'legacy'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white dark:bg-surface-2 text-gray-900 dark:text-primary shadow-sm'
+                    : 'text-gray-600 dark:text-secondary hover:text-gray-900 dark:hover:text-primary'
                 }`}
               >
                 Legacy
@@ -318,7 +318,7 @@ export default function ChatView() {
       )}
 
       {/* Spec & Journey Selectors */}
-      <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+      <div className="px-4 py-3 bg-gray-50 dark:bg-surface-2 border-b border-gray-200 dark:border-border-subtle">
         <div className="flex gap-3">
           {/* Spec Selector */}
           <div className="flex-1">
@@ -326,7 +326,7 @@ export default function ChatView() {
               value={selectedSpecPath}
               onChange={(e) => handleSpecSelect(e.target.value)}
               disabled={loadingSpecs}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-forge-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-border rounded-md bg-white dark:bg-surface-1 text-gray-900 dark:text-primary focus:outline-none focus:ring-2 focus:ring-forge-500 dark:focus:ring-accent focus:border-transparent"
             >
               <option value="">
                 {loadingSpecs ? 'Loading specs...' : 'Select a spec...'}
@@ -348,7 +348,7 @@ export default function ChatView() {
                 setSelectedJourney(j)
               }}
               disabled={!spec}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-forge-500 focus:border-transparent disabled:opacity-50"
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-border rounded-md bg-white dark:bg-surface-1 text-gray-900 dark:text-primary focus:outline-none focus:ring-2 focus:ring-forge-500 dark:focus:ring-accent focus:border-transparent disabled:opacity-50"
             >
               <option value="">
                 {spec ? 'Select a journey...' : 'Load a spec first'}
@@ -364,15 +364,15 @@ export default function ChatView() {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-white">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-white dark:bg-surface-0">
         {messages.length === 0 && (
-          <div className="flex items-center justify-center h-full text-gray-400">
+          <div className="flex items-center justify-center h-full text-gray-400 dark:text-muted">
             <div className="text-center">
-              <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
               <p className="text-sm">Select a spec and journey, then start chatting.</p>
-              <p className="text-xs mt-1 text-gray-300">Multi-turn conversations persist via thread_id</p>
+              <p className="text-xs mt-1 text-gray-300 dark:text-muted">Multi-turn conversations persist via thread_id</p>
             </div>
           </div>
         )}
@@ -391,8 +391,8 @@ export default function ChatView() {
 
         {sending && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-lg px-4 py-3 max-w-[75%]">
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="bg-gray-100 dark:bg-surface-1 rounded-lg px-4 py-3 max-w-[75%]">
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-secondary">
                 <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -408,13 +408,13 @@ export default function ChatView() {
 
       {/* Error */}
       {error && (
-        <div className="mx-4 mb-2 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+        <div className="mx-4 mb-2 p-3 bg-red-50 dark:bg-danger/10 border border-red-200 dark:border-danger/30 rounded-md text-sm text-red-700 dark:text-danger">
           {error}
         </div>
       )}
 
       {/* Input Area */}
-      <div className="px-4 py-3 border-t border-gray-200 bg-white rounded-b-lg">
+      <div className="px-4 py-3 border-t border-gray-200 dark:border-border-subtle bg-white dark:bg-surface-1 rounded-b-lg">
         <div className="flex gap-2 items-end">
           <textarea
             ref={inputRef}
@@ -428,7 +428,7 @@ export default function ChatView() {
             }
             disabled={!selectedJourney || sending}
             rows={1}
-            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-forge-500 focus:border-transparent resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2.5 bg-white dark:bg-surface-2 text-gray-900 dark:text-primary border border-gray-300 dark:border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-forge-500 dark:focus:ring-accent focus:border-transparent resize-none disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ minHeight: '42px', maxHeight: '120px' }}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement
@@ -439,7 +439,7 @@ export default function ChatView() {
           <button
             onClick={handleSend}
             disabled={!input.trim() || !selectedJourney || sending}
-            className="px-4 py-2.5 bg-forge-600 text-white rounded-lg font-medium hover:bg-forge-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+            className="px-4 py-2.5 bg-forge-600 dark:bg-accent text-white rounded-lg font-medium hover:bg-forge-700 dark:hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -472,8 +472,8 @@ function ChatBubble({ message, hitlPending, handoffPending, sending, onHITLDecis
         <div
           className={`rounded-lg px-4 py-2.5 text-sm whitespace-pre-wrap ${
             isUser
-              ? 'bg-forge-600 text-white'
-              : 'bg-gray-100 text-gray-900'
+              ? 'bg-forge-600 dark:bg-accent text-white'
+              : 'bg-gray-100 dark:bg-surface-1 text-gray-900 dark:text-primary'
           }`}
         >
           {message.content}
@@ -490,14 +490,14 @@ function ChatBubble({ message, hitlPending, handoffPending, sending, onHITLDecis
 
         {/* HITL Approval inline */}
         {message.hitl_info && !message.handoff_info && (
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
+          <div className="p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg text-sm">
             <div className="flex items-center gap-2 mb-1">
-              <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
-              <span className="font-medium text-amber-800">Approval Required</span>
+              <span className="font-medium text-amber-800 dark:text-amber-300">Approval Required</span>
             </div>
-            <p className="text-amber-700 text-xs mb-2">
+            <p className="text-amber-700 dark:text-amber-400 text-xs mb-2">
               Step "{message.hitl_info.step_name}" needs {message.hitl_info.escalate_to} approval.
             </p>
             {hitlPending && onHITLDecision && (
@@ -526,7 +526,7 @@ function ChatBubble({ message, hitlPending, handoffPending, sending, onHITLDecis
           <div className="mt-1">
             <button
               onClick={() => setTracesExpanded(!tracesExpanded)}
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              className="flex items-center gap-1 text-xs text-gray-400 dark:text-muted hover:text-gray-600 dark:hover:text-secondary transition-colors"
             >
               <svg
                 className={`w-3 h-3 transition-transform ${tracesExpanded ? 'rotate-90' : ''}`}
@@ -540,19 +540,19 @@ function ChatBubble({ message, hitlPending, handoffPending, sending, onHITLDecis
             </button>
 
             {tracesExpanded && (
-              <div className="mt-1.5 pl-3 border-l-2 border-gray-200 space-y-1.5">
+              <div className="mt-1.5 pl-3 border-l-2 border-gray-200 dark:border-border-subtle space-y-1.5">
                 {message.traces.map((trace, i) => (
                   <div key={i} className="text-xs">
                     <div className="flex items-center gap-2">
                       <StepStatusIcon status={trace.status} />
-                      <span className="font-medium text-gray-700">{trace.step_name}</span>
-                      <span className="text-gray-400">{trace.step_type}</span>
+                      <span className="font-medium text-gray-700 dark:text-secondary">{trace.step_name}</span>
+                      <span className="text-gray-400 dark:text-muted">{trace.step_type}</span>
                       {trace.duration_ms !== undefined && (
-                        <span className="text-gray-400">{trace.duration_ms}ms</span>
+                        <span className="text-gray-400 dark:text-muted">{trace.duration_ms}ms</span>
                       )}
                     </div>
                     {trace.output_preview && (
-                      <p className="mt-0.5 text-gray-500 pl-5 truncate">{trace.output_preview}</p>
+                      <p className="mt-0.5 text-gray-500 dark:text-secondary pl-5 truncate">{trace.output_preview}</p>
                     )}
                   </div>
                 ))}
@@ -562,7 +562,7 @@ function ChatBubble({ message, hitlPending, handoffPending, sending, onHITLDecis
         )}
 
         {/* Timestamp */}
-        <div className={`text-[10px] text-gray-300 ${isUser ? 'text-right' : 'text-left'}`}>
+        <div className={`text-[10px] text-gray-300 dark:text-muted ${isUser ? 'text-right' : 'text-left'}`}>
           {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
@@ -602,8 +602,8 @@ function InlineChatHandoffForm({ handoffInfo, onSubmit, loading }: {
   }
 
   return (
-    <div className="mt-2 p-4 bg-indigo-50 border border-indigo-200 rounded-lg space-y-3">
-      <div className="flex items-center gap-2 text-sm font-medium text-indigo-800">
+    <div className="mt-2 p-4 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 rounded-lg space-y-3">
+      <div className="flex items-center gap-2 text-sm font-medium text-indigo-800 dark:text-indigo-300">
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
@@ -613,9 +613,9 @@ function InlineChatHandoffForm({ handoffInfo, onSubmit, loading }: {
       {handoffInfo.fields.map((field) => (
         <div key={field.id} className="space-y-1">
           {field.field_type !== 'checkbox' && (
-            <label className="block text-xs font-medium text-gray-700">
+            <label className="block text-xs font-medium text-gray-700 dark:text-secondary">
               {field.label}
-              {field.required && <span className="text-red-500 ml-0.5">*</span>}
+              {field.required && <span className="text-red-500 dark:text-danger ml-0.5">*</span>}
             </label>
           )}
 
@@ -625,7 +625,7 @@ function InlineChatHandoffForm({ handoffInfo, onSubmit, loading }: {
               onChange={(e) => handleChange(field.id, e.target.value)}
               placeholder={field.placeholder || ''}
               rows={2}
-              className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="w-full px-3 py-1.5 bg-white dark:bg-surface-2 text-gray-900 dark:text-primary border border-gray-300 dark:border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
             />
           )}
 
@@ -635,7 +635,7 @@ function InlineChatHandoffForm({ handoffInfo, onSubmit, loading }: {
               value={(formData[field.id] as string) || ''}
               onChange={(e) => handleChange(field.id, e.target.value)}
               placeholder={field.placeholder || ''}
-              className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-1.5 bg-white dark:bg-surface-2 text-gray-900 dark:text-primary border border-gray-300 dark:border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           )}
 
@@ -643,7 +643,7 @@ function InlineChatHandoffForm({ handoffInfo, onSubmit, loading }: {
             <select
               value={(formData[field.id] as string) || ''}
               onChange={(e) => handleChange(field.id, e.target.value)}
-              className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              className="w-full px-3 py-1.5 border border-gray-300 dark:border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-surface-2 text-gray-900 dark:text-primary"
             >
               <option value="">{field.placeholder || 'Select...'}</option>
               {field.options.map((opt) => (
@@ -662,8 +662,8 @@ function InlineChatHandoffForm({ handoffInfo, onSubmit, loading }: {
                     key={opt}
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border cursor-pointer text-xs transition-colors ${
                       selected
-                        ? 'border-indigo-400 bg-indigo-100 text-indigo-800'
-                        : 'border-gray-200 bg-white hover:border-gray-300 text-gray-700'
+                        ? 'border-indigo-400 dark:border-indigo-500/50 bg-indigo-100 dark:bg-indigo-500/15 text-indigo-800 dark:text-indigo-300'
+                        : 'border-gray-200 dark:border-border-subtle bg-white dark:bg-surface-2 hover:border-gray-300 dark:hover:border-border text-gray-700 dark:text-secondary'
                     }`}
                   >
                     <input
@@ -692,9 +692,9 @@ function InlineChatHandoffForm({ handoffInfo, onSubmit, loading }: {
                 type="checkbox"
                 checked={Boolean(formData[field.id])}
                 onChange={(e) => handleChange(field.id, e.target.checked)}
-                className="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="mt-0.5 rounded border-gray-300 dark:border-border text-indigo-600 focus:ring-indigo-500"
               />
-              <span className="text-xs text-gray-700">{field.label}</span>
+              <span className="text-xs text-gray-700 dark:text-secondary">{field.label}</span>
             </label>
           )}
         </div>
@@ -745,7 +745,7 @@ function StepStatusIcon({ status }: { status: string }) {
       )
     default:
       return (
-        <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-3 h-3 text-gray-400 dark:text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <circle cx="12" cy="12" r="3" />
         </svg>
       )

@@ -63,8 +63,8 @@ export default function HandoffForm({ handoffInfo, onSubmit, loading }: HandoffF
     const value = formData[field.id]
     const error = errors[field.id]
 
-    const baseInputClass = `w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-      error ? 'border-red-300 bg-red-50' : 'border-gray-300'
+    const baseInputClass = `w-full px-3 py-2 bg-white dark:bg-surface-1 text-gray-900 dark:text-primary border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+      error ? 'border-red-300 dark:border-danger bg-red-50 dark:bg-danger/10' : 'border-gray-300 dark:border-border'
     }`
 
     switch (field.field_type) {
@@ -103,8 +103,8 @@ export default function HandoffForm({ handoffInfo, onSubmit, loading }: HandoffF
                   key={opt}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-md border cursor-pointer transition-colors ${
                     selected
-                      ? 'border-indigo-300 bg-indigo-50 text-indigo-800'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-indigo-300 dark:border-indigo-500/40 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-800 dark:text-indigo-300'
+                      : 'border-gray-200 dark:border-border-subtle hover:border-gray-300 dark:hover:border-border'
                   }`}
                 >
                   <input
@@ -118,9 +118,9 @@ export default function HandoffForm({ handoffInfo, onSubmit, loading }: HandoffF
                         handleChange(field.id, current.filter((v) => v !== opt))
                       }
                     }}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-gray-300 dark:border-border text-indigo-600 focus:ring-indigo-500"
                   />
-                  <span className="text-sm">{opt}</span>
+                  <span className="text-sm text-gray-900 dark:text-primary">{opt}</span>
                 </label>
               )
             })}
@@ -134,9 +134,9 @@ export default function HandoffForm({ handoffInfo, onSubmit, loading }: HandoffF
               type="checkbox"
               checked={Boolean(value)}
               onChange={(e) => handleChange(field.id, e.target.checked)}
-              className="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="mt-0.5 rounded border-gray-300 dark:border-border text-indigo-600 focus:ring-indigo-500"
             />
-            <span className="text-sm text-gray-700">{field.label}</span>
+            <span className="text-sm text-gray-700 dark:text-secondary">{field.label}</span>
           </label>
         )
 
@@ -154,33 +154,33 @@ export default function HandoffForm({ handoffInfo, onSubmit, loading }: HandoffF
   }
 
   return (
-    <div className="border-2 border-indigo-300 bg-indigo-50 rounded-lg p-5 animate-slide-in">
+    <div className="border-2 border-indigo-300 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg p-5 animate-slide-in">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-          <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-500/15 rounded-full flex items-center justify-center flex-shrink-0">
+          <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </div>
 
         <div className="flex-1">
-          <h3 className="font-semibold text-indigo-900 text-lg">Structured Input Required</h3>
-          <p className="text-sm text-indigo-700 mt-1">
+          <h3 className="font-semibold text-indigo-900 dark:text-indigo-300 text-lg">Structured Input Required</h3>
+          <p className="text-sm text-indigo-700 dark:text-indigo-400 mt-1">
             {handoffInfo.transition_message}
           </p>
 
           {/* Form Fields */}
-          <div className="mt-4 space-y-4 bg-white rounded-md border border-indigo-200 p-4">
+          <div className="mt-4 space-y-4 bg-white dark:bg-surface-2 rounded-md border border-indigo-200 dark:border-indigo-500/20 p-4">
             {handoffInfo.fields.map((field) => (
               <div key={field.id}>
                 {field.field_type !== 'checkbox' && (
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-secondary mb-1">
                     {field.label}
-                    {field.required && <span className="text-red-500 ml-0.5">*</span>}
+                    {field.required && <span className="text-red-500 dark:text-danger ml-0.5">*</span>}
                   </label>
                 )}
                 {renderField(field)}
                 {errors[field.id] && (
-                  <p className="mt-1 text-xs text-red-600">{errors[field.id]}</p>
+                  <p className="mt-1 text-xs text-red-600 dark:text-danger">{errors[field.id]}</p>
                 )}
               </div>
             ))}

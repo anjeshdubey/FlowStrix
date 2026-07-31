@@ -41,33 +41,33 @@ export default function JourneyRunner({ spec, specPath, onRun, disabled }: Journ
   return (
     <div className="space-y-4">
       {/* Spec Info */}
-      <div className="p-4 bg-white rounded-lg border border-gray-200">
+      <div className="p-4 bg-white dark:bg-surface-1 rounded-lg border border-gray-200 dark:border-border-subtle">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-gray-900">{spec.agent}</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-primary">{spec.agent}</h3>
           <div className="flex gap-2 text-xs">
-            <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+            <span className="bg-gray-100 dark:bg-surface-2 text-gray-600 dark:text-secondary px-2 py-0.5 rounded">
               {spec.journeys.length} journey{spec.journeys.length !== 1 ? 's' : ''}
             </span>
             {spec.knowledge_sources > 0 && (
-              <span className="bg-purple-50 text-purple-600 px-2 py-0.5 rounded">
+              <span className="bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded">
                 {spec.knowledge_sources} knowledge
               </span>
             )}
             {spec.simulations > 0 && (
-              <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded">
+              <span className="bg-blue-50 dark:bg-info/15 text-blue-600 dark:text-info px-2 py-0.5 rounded">
                 {spec.simulations} simulations
               </span>
             )}
           </div>
         </div>
-        <p className="text-sm text-gray-500">
-          Persona: <span className="text-gray-700">{spec.persona_name}</span> — {spec.persona_description}
+        <p className="text-sm text-gray-500 dark:text-secondary">
+          Persona: <span className="text-gray-700 dark:text-primary">{spec.persona_name}</span> — {spec.persona_description}
         </p>
       </div>
 
       {/* Journey Selection */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Journey</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-secondary mb-1">Journey</label>
         <div className="grid gap-2">
           {spec.journeys.map((j) => (
             <button
@@ -75,20 +75,20 @@ export default function JourneyRunner({ spec, specPath, onRun, disabled }: Journ
               onClick={() => setSelectedJourney(j)}
               className={`text-left p-3 rounded-lg border transition-all ${
                 selectedJourney?.name === j.name
-                  ? 'border-forge-500 bg-forge-50 ring-1 ring-forge-500'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  ? 'border-forge-500 dark:border-accent bg-forge-50 dark:bg-accent/10 ring-1 ring-forge-500 dark:ring-accent'
+                  : 'border-gray-200 dark:border-border-subtle bg-white dark:bg-surface-1 hover:border-gray-300 dark:hover:border-border'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="font-medium text-sm text-gray-900">{j.name}</span>
-                <span className="text-xs text-gray-400">
+                <span className="font-medium text-sm text-gray-900 dark:text-primary">{j.name}</span>
+                <span className="text-xs text-gray-400 dark:text-muted">
                   {j.step_count} steps
                 </span>
               </div>
-              <p className="text-xs text-gray-500 mt-0.5">{j.description}</p>
+              <p className="text-xs text-gray-500 dark:text-secondary mt-0.5">{j.description}</p>
               <div className="flex gap-1 mt-1.5">
                 {j.step_types.map((t, i) => (
-                  <span key={i} className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
+                  <span key={i} className="text-[10px] bg-gray-100 dark:bg-surface-2 text-gray-500 dark:text-secondary px-1.5 py-0.5 rounded">
                     {t}
                   </span>
                 ))}
@@ -100,19 +100,19 @@ export default function JourneyRunner({ spec, specPath, onRun, disabled }: Journ
 
       {/* Message Input */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-secondary mb-1">Message</label>
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Enter user message (e.g., 'I want a refund for my headphones')"
           rows={2}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-forge-500 focus:border-transparent resize-none"
+          className="w-full px-3 py-2 bg-white dark:bg-surface-1 text-gray-900 dark:text-primary border border-gray-300 dark:border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-forge-500 dark:focus:ring-accent focus:border-transparent resize-none"
         />
       </div>
 
       {/* Context Input */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Context (JSON)</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-secondary mb-1">Context (JSON)</label>
         <textarea
           value={contextStr}
           onChange={(e) => {
@@ -121,12 +121,12 @@ export default function JourneyRunner({ spec, specPath, onRun, disabled }: Journ
           }}
           placeholder='{"customer_id": "cust_123"}'
           rows={2}
-          className={`w-full px-3 py-2 border rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-forge-500 focus:border-transparent resize-none ${
-            contextError ? 'border-red-300' : 'border-gray-300'
+          className={`w-full px-3 py-2 bg-white dark:bg-surface-1 text-gray-900 dark:text-primary border rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-forge-500 dark:focus:ring-accent focus:border-transparent resize-none ${
+            contextError ? 'border-red-300 dark:border-danger' : 'border-gray-300 dark:border-border'
           }`}
         />
         {contextError && (
-          <p className="mt-1 text-xs text-red-600">{contextError}</p>
+          <p className="mt-1 text-xs text-red-600 dark:text-danger">{contextError}</p>
         )}
       </div>
 
@@ -134,7 +134,7 @@ export default function JourneyRunner({ spec, specPath, onRun, disabled }: Journ
       <button
         onClick={handleRun}
         disabled={!selectedJourney || disabled}
-        className="w-full py-2.5 bg-forge-600 text-white rounded-md font-medium hover:bg-forge-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full py-2.5 bg-forge-600 dark:bg-accent text-white rounded-md font-medium hover:bg-forge-700 dark:hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {disabled ? (
           <>

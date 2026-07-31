@@ -20,6 +20,13 @@
         }
       })(window.location)
     </script>
+    <script>
+      // Set the theme class before first paint so there's no light-to-dark
+      // flash while React hydrates and useTheme's effect catches up.
+      if (localStorage.getItem('flowstrix-theme') === 'dark') {
+        document.documentElement.classList.add('dark')
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -31,7 +38,7 @@
   <!-- Theme lives with the app, not this template: one index.html serves both
        the light demo at /FlowStrix/ and any dark build under /FlowStrix/next/,
        so a shell that wants dark sets `dark` on documentElement itself. -->
-  <body class="bg-gray-50 text-gray-900 antialiased">
+  <body class="bg-gray-50 dark:bg-surface-0 text-gray-900 dark:text-primary antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

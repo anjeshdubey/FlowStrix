@@ -187,11 +187,11 @@ export default function App() {
     <Layout health={health}>
       {/* Mode Switcher */}
       <div className="flex items-center justify-center mb-8">
-        <div className="inline-flex items-center bg-gray-100 p-1 rounded-lg">
+        <div className="inline-flex items-center bg-gray-100 dark:bg-surface-1 p-1 rounded-lg">
           <button
             onClick={() => setMode('author')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              mode === 'author' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              mode === 'author' ? 'bg-white dark:bg-surface-2 text-gray-900 dark:text-primary shadow-sm' : 'text-gray-600 dark:text-secondary hover:text-gray-900 dark:hover:text-primary'
             }`}
           >
             <span className="flex items-center gap-1.5">
@@ -204,7 +204,7 @@ export default function App() {
           <button
             onClick={() => setMode('discover')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              mode === 'discover' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              mode === 'discover' ? 'bg-white dark:bg-surface-2 text-gray-900 dark:text-primary shadow-sm' : 'text-gray-600 dark:text-secondary hover:text-gray-900 dark:hover:text-primary'
             }`}
           >
             <span className="flex items-center gap-1.5">
@@ -217,7 +217,7 @@ export default function App() {
           <button
             onClick={() => setMode('run')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              mode === 'run' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              mode === 'run' ? 'bg-white dark:bg-surface-2 text-gray-900 dark:text-primary shadow-sm' : 'text-gray-600 dark:text-secondary hover:text-gray-900 dark:hover:text-primary'
             }`}
           >
             <span className="flex items-center gap-1.5">
@@ -231,7 +231,7 @@ export default function App() {
           <button
             onClick={() => setMode('chat')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              mode === 'chat' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              mode === 'chat' ? 'bg-white dark:bg-surface-2 text-gray-900 dark:text-primary shadow-sm' : 'text-gray-600 dark:text-secondary hover:text-gray-900 dark:hover:text-primary'
             }`}
           >
             <span className="flex items-center gap-1.5">
@@ -273,7 +273,7 @@ export default function App() {
             {(status === 'completed' || status === 'failed') && (
               <button
                 onClick={handleReset}
-                className="w-full py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                className="w-full py-2 text-sm text-gray-600 dark:text-secondary border border-gray-300 dark:border-border rounded-md hover:bg-gray-50 dark:hover:bg-surface-1 transition-colors"
               >
                 Reset & Run Again
               </button>
@@ -284,9 +284,9 @@ export default function App() {
           <div className="lg:col-span-7 space-y-6">
             {/* Idle state */}
             {status === 'idle' && (
-              <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
+              <div className="flex items-center justify-center h-64 text-gray-400 dark:text-muted text-sm">
                 <div className="text-center">
-                  <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                   <p>Load a spec and execute a journey to see results here.</p>
@@ -296,9 +296,9 @@ export default function App() {
 
             {/* Ready state — spec loaded but not run */}
             {status === 'ready' && steps.length === 0 && !result && (
-              <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
+              <div className="flex items-center justify-center h-64 text-gray-400 dark:text-muted text-sm">
                 <div className="text-center">
-                  <svg className="w-12 h-12 mx-auto mb-3 text-forge-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-12 h-12 mx-auto mb-3 text-forge-300 dark:text-accent/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -346,7 +346,7 @@ export default function App() {
 
             {/* Error */}
             {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 animate-slide-in">
+              <div className="p-4 bg-red-50 dark:bg-danger/10 border border-red-200 dark:border-danger/30 rounded-lg text-sm text-red-700 dark:text-danger animate-slide-in">
                 <strong>Error:</strong> {error}
               </div>
             )}

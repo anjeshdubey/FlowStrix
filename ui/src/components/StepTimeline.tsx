@@ -27,7 +27,7 @@ export default function StepTimeline({ steps }: StepTimelineProps) {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+      <h3 className="text-sm font-semibold text-gray-700 dark:text-secondary uppercase tracking-wide">
         Execution Steps
       </h3>
 
