@@ -14,7 +14,11 @@ interface ChatMessage {
   timestamp: number
 }
 
-export default function ChatView() {
+interface ChatViewProps {
+  specPath: string
+}
+
+export default function ChatView({ specPath }: ChatViewProps) {
   const [specs, setSpecs] = useState<SavedSpec[]>([])
   const [loadingSpecs, setLoadingSpecs] = useState(true)
   const [selectedSpecPath, setSelectedSpecPath] = useState('')
@@ -32,6 +36,9 @@ export default function ChatView() {
   const [handoffPending, setHandoffPending] = useState(false)
   // Track how many assistant messages we've already rendered (to extract only new ones)
   const prevAssistantCountRef = useRef(0)
+  // Last rail specPath we auto-applied, so the sync effect reacts only to the
+  // rail changing — not to the user's own picks from Chat's local dropdown.
+  const syncedSpecPathRef = useRef('')
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -65,6 +72,18 @@ export default function ChatView() {
       setSpec(null)
     }
   }, [])
+
+  // Inherit the spec selected elsewhere in the app (e.g. the Run tab's rail).
+  // Only auto-follow it before a conversation has started, so switching tabs
+  // mid-chat doesn't yank the active spec out from under an ongoing thread —
+  // and only react to the rail itself changing, so a manual pick from Chat's
+  // own dropdown isn't immediately overridden on the next render.
+  useEffect(() => {
+    if (specPath && specPath !== syncedSpecPathRef.current && messages.length === 0) {
+      syncedSpecPathRef.current = specPath
+      handleSpecSelect(specPath)
+    }
+  }, [specPath, messages.length, handleSpecSelect])
 
   // Send message
   const handleSend = useCallback(async () => {

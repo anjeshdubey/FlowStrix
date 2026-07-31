@@ -251,7 +251,7 @@ export default function App() {
       {mode === 'discover' && <DiscoverView />}
 
       {/* Chat Mode */}
-      {mode === 'chat' && <ChatView />}
+      {mode === 'chat' && <ChatView specPath={specPath} />}
 
       {/* Run Mode */}
       {mode === 'run' && (
