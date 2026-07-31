@@ -113,6 +113,7 @@ Your output MUST be a valid FlowStrix AgentSpec. The schema has these components
 5. **hitl** (gate): Human approval checkpoint. Fields: name, condition, escalation_type (approval/handoff/review), escalate_to, context_to_share
 6. **tool** (deterministic): Execute an action. Fields: name, tool, params, output_key, requires_confirmation
 7. **wait** (pause): Wait for event/timeout. Fields: name, event, timeout_seconds
+8. **handoff** (form): Switch from conversation to a structured form for complex or compliance-sensitive input. Not the same as hitl's `escalation_type: handoff` (which escalates to a human, not a form). Fields: name, trigger_condition, fields (list of {id, label, field_type: text/textarea/select/multiselect/date/checkbox/file, required, options, placeholder, validation}), prefill_from_context (map of field_id to context_key), output_key, transition_message
 
 ## Design Principles
 - Start with a lookup to gather context (never reason without data)
@@ -122,6 +123,7 @@ Your output MUST be a valid FlowStrix AgentSpec. The schema has these components
 - Keep temperature at 0.0 for decision steps, allow 0.3 for response generation
 - Respond steps are terminal — they end an execution path
 - branch if_true/if_false must reference step NAMES that exist in the journey
+- Use `handoff` when a step needs multiple structured fields from the user (forms, applications) rather than a single free-text reply; use `prefill_from_context` to avoid re-asking for data already collected
 
 ## Condition Syntax
 - ${key}: Reference a context variable
