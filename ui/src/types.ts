@@ -16,6 +16,11 @@ export interface StepTrace {
   status: string
   duration_ms?: number
   output_preview?: string
+  // Token counts for steps that called a model. Undefined for deterministic
+  // steps (never touch an LLM) and for cache hits (spend no tokens) — the
+  // two cases are distinguishable by step_type.
+  tokens_in?: number
+  tokens_out?: number
 }
 
 export interface HITLInfo {
@@ -70,6 +75,8 @@ export interface StepEvent {
   step_type?: string
   status?: string
   output_preview?: string
+  tokens_in?: number
+  tokens_out?: number
   timestamp: number
 }
 
@@ -175,4 +182,6 @@ export interface StepState {
   status: 'pending' | 'running' | 'completed' | 'failed' | 'hitl'
   duration_ms?: number
   output_preview?: string
+  tokens_in?: number
+  tokens_out?: number
 }

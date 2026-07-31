@@ -299,6 +299,7 @@ def _build_run_response(
         output_preview = None
         if t.output:
             output_preview = str(t.output)[:100]
+        usage = t.llm_usage or {}
         traces.append(
             StepTraceResponse(
                 step_name=t.step_name,
@@ -306,6 +307,8 @@ def _build_run_response(
                 status=t.status.value,
                 duration_ms=t.duration_ms,
                 output_preview=output_preview,
+                tokens_in=usage.get("tokens_in"),
+                tokens_out=usage.get("tokens_out"),
             )
         )
 
@@ -885,12 +888,15 @@ async def stream_journey(request: RunRequest):
         # Stream all step traces as events
         for trace in ctx.traces:
             output_preview = str(trace.output)[:100] if trace.output else None
+            usage = trace.llm_usage or {}
             event = StepEvent(
                 event="step_completed",
                 step_name=trace.step_name,
                 step_type=trace.step_type,
                 status=trace.status.value,
                 output_preview=output_preview,
+                tokens_in=usage.get("tokens_in"),
+                tokens_out=usage.get("tokens_out"),
                 timestamp=trace.completed_at or time.time(),
             )
             yield f"event: step\ndata: {event.model_dump_json()}\n\n"
